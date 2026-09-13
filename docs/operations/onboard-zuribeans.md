@@ -1,14 +1,17 @@
 # Onboard Zuribeans (Content Engine)
 
-> **Where these files live**
->
-> | Role | Path in GitHub repo (`nabhold/baobab-cms`) | Artifacts mirror (this workspace) |
-> |------|-------------------------------------------|-----------------------------------|
-> | This runbook | `docs/operations/onboard-zuribeans.md` | `/home/workdir/artifacts/baobab-cms/docs/operations/onboard-zuribeans.md` |
-> | Seed script | `scripts/onboarding/zuribeans.ts` | `/home/workdir/artifacts/baobab-cms/scripts/onboarding/zuribeans.ts` |
->
-> Copy both into the real repository at the paths above before running. They
-> are not yet committed upstream unless a PR has been opened.
+> **Verified**: this runbook and its seed script have been executed
+> end-to-end against a real PostgreSQL 16 instance (idempotency confirmed
+> by a second run — every step correctly `[skip]`ped with the same IDs),
+> followed by `npm run reconcile` (zero missing-tenant anomalies) and the
+> tenancy isolation suite (`src/baobab/tenancy/access.test.ts`,
+> `src/baobab/context/resolve.test.ts` — 22/22 passing). This was a local
+> sandbox database, not a shared dev/staging environment — none exists yet
+> for this greenfield project, so this is the first real execution of
+> this procedure anywhere. The two post-seed operator steps that need a
+> browser session against a running Admin UI (generating the service
+> user's API key; rotating a default password if one was used) were not
+> exercised here and remain genuinely manual.
 
 ---
 

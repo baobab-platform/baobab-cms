@@ -1,13 +1,11 @@
 #!/usr/bin/env tsx
 /**
  * =============================================================================
- * TARGET PATH (copy into the real repo at this exact location):
- *
- *   nabhold/baobab-cms/scripts/onboarding/zuribeans.ts
- *
- * This file currently lives in the project artifacts mirror:
- *   /home/workdir/artifacts/baobab-cms/scripts/onboarding/zuribeans.ts
- * Copy or PR it into the GitHub repo path above before running in CI/dev.
+ * Verified end-to-end (see docs/operations/onboard-zuribeans.md's header)
+ * against a real PostgreSQL 16 instance: idempotent re-run, reconciliation,
+ * and the tenancy isolation suite all confirmed. That was a local sandbox
+ * database, not a shared dev/staging environment -- none exists yet for
+ * this greenfield project.
  * =============================================================================
  *
  * PURPOSE
