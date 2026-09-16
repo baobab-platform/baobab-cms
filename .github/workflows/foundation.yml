@@ -1,0 +1,19 @@
+name: Foundation Repository Gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    uses: nabhold/shared/.github/workflows/foundation-repository-gates.yml@d6c751ad9e5b85ed854c4ad3270bff4b7ac3c8cc
+    with:
+      dockerfile: "Dockerfile"
+      build_context: "."
