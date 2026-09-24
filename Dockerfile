@@ -6,7 +6,7 @@
 # deployment step, using the `build` stage or CI, which still has the full
 # toolchain). See docs/operations/runbooks.md for the deploy sequence.
 
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 
@@ -29,7 +29,12 @@ LABEL org.opencontainers.image.source="https://github.com/baobab-platform/baobab
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
-RUN addgroup -g 1001 -S nodejs && adduser -S payload -u 1001
+# The standalone server only runs `node server.js`; drop the npm, npx and
+# corepack CLIs bundled with the Node base image so their dependencies
+# (tar, etc.) do not ship in the runtime image.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+  && addgroup -g 1001 -S nodejs && adduser -S payload -u 1001
 
 COPY --from=build /app/public ./public
 COPY --from=build --chown=payload:nodejs /app/.next/standalone ./
