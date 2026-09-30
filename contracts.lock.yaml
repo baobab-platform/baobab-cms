@@ -1,0 +1,19 @@
+# The baobab-platform/shared contracts this engine implements or consumes
+# (EA Plan v2.0 EA-01A; schema: shared .baobab/contract-consumer-lock.schema.json).
+# Foundation checks that the commit is on Shared main and that every listed
+# contract exists and parses there, and reports drift in the job summary.
+schema: baobab-contract-consumer-lock
+version: "1.0"
+source:
+  repository: baobab-platform/shared
+  commit: b63ce52a20d1b6f8acc41d085913c6025d6c859c
+contracts:
+  # content.entry.resolve, declared as planned in .baobab/capability-provider.yaml.
+  - contracts/content/v1/capabilities.yaml
+  # Its contract 1 request and response. Not implemented yet (plan §51 item 16);
+  # pinned now so Shared changes to them show in the drift report first.
+  - contracts/content/v1/content-resolve-request.schema.json
+  - contracts/content/v1/content-resolve-response.schema.json
+policy:
+  updates: explicit_pull_request
+  compatibility: validate_before_merge
