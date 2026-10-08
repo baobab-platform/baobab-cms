@@ -24,6 +24,11 @@
 #     ADR-0014 specificity, inheritance and fallback rules, but no route
 #     accepts ContentResolveRequest or answers ContentResolveResponse yet,
 #     so the capability is planned (CONTRACTED), not claimed as support.
+#     The contract handler (request validation, tenant check against trusted
+#     context, resolution, contract-shaped response and problem details) is
+#     implemented and tested in src/baobab/content-resolution/contract.ts.
+#     What remains is the HTTP route and its authentication, which wait for
+#     Shared to publish an OpenAPI surface for content/v1.
 #     Move it into providers[].support for baobab-cms.payload, with the
 #     route and its contract tests as evidence, once it does.
 #
