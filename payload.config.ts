@@ -13,6 +13,9 @@ import DigitalEstates from './src/collections/DigitalEstates.js';
 import Markets from './src/collections/Markets.js';
 import Pages from './src/collections/Pages.js';
 import ProductContent from './src/collections/ProductContent.js';
+import PortfolioCompanies from './src/collections/PortfolioCompanies.js';
+import Sectors from './src/collections/Sectors.js';
+import Insights from './src/collections/Insights.js';
 import Media from './src/collections/Media.js';
 import Outbox from './src/collections/Outbox.js';
 import AuditLog from './src/collections/AuditLog.js';
@@ -60,6 +63,10 @@ export default buildConfig({
     // Editorial content (ADR-0011 domain authority)
     Pages,
     ProductContent,
+    // Corporate editorial content read by corporate digital estates
+    PortfolioCompanies,
+    Sectors,
+    Insights,
     Media,
     // Internal system collections (hidden from ordinary editors)
     Outbox,
