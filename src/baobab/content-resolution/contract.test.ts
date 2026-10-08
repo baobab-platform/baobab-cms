@@ -155,7 +155,9 @@ describe('handleContentResolve', () => {
   it('refuses a tenant that differs from the verified context', async () => {
     const outcome = await handleContentResolve({ ...request, tenant_id: 'tenant-b' }, context, deps([entry({})]));
 
-    expect(outcome).toMatchObject({ ok: false, status: 403, problem: { code: 'TENANT_CONTEXT_MISMATCH' } });
+    expect(outcome).toMatchObject({ ok: false, status: 403, problem: { code: 'CONTENT_CONTEXT_REJECTED' } });
+    // The reason must not reveal which tenant the verified context belongs to.
+    expect(JSON.stringify(!outcome.ok && outcome.problem)).not.toContain('tenant-a');
   });
 
   it('never returns another tenant’s record even if the loader leaks it', async () => {

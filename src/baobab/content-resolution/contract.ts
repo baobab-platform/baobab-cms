@@ -285,7 +285,7 @@ export async function handleContentResolve(
   const dto = parsed.value;
 
   if (dto.tenant_id !== context.tenantId) {
-    return problem(context, 403, 'tenant-context-mismatch', 'TENANT_CONTEXT_MISMATCH', 'Tenant context mismatch', 'The requested tenant does not match the verified caller context.');
+    return problem(context, 403, 'content-context-rejected', 'CONTENT_CONTEXT_REJECTED', 'Context rejected', 'The request context cannot be used by this caller.');
   }
 
   if (dto.preview_mode === true && !context.previewPermitted) {
