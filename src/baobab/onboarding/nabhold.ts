@@ -121,8 +121,8 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
   const writing = options.mode === 'apply';
   const cpTenantId = options.controlPlaneTenantId;
   const cpOrgId = options.controlPlaneOrganisationId;
-  if (cpOrgId !== undefined && !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(cpOrgId)) {
-    blockers.push('CONTROL_PLANE_ORGANISATION_ID_INVALID: expected a Control Plane canonical organisation id.');
+  if (cpOrgId !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cpOrgId)) {
+    blockers.push('CONTROL_PLANE_ORGANISATION_ID_INVALID: expected a Control Plane Organisation UUID (Shared organisation/v2).');
   }
   if (cpTenantId !== undefined && !/^tn_[a-z0-9]+$/.test(cpTenantId)) {
     blockers.push('CONTROL_PLANE_TENANT_ID_INVALID: expected a Control Plane tenant id such as tn_abc123.');

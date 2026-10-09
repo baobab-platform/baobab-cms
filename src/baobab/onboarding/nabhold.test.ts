@@ -181,11 +181,11 @@ describe('Control Plane organisation id', () => {
     const first = await onboardNabhold(repo, { ...base, mode: 'apply' });
     expect(store.organisations[0].controlPlaneOrganisationId).toBeUndefined();
     expect(first.steps.some((s) => s.step === 'organisation-control-plane-id' && s.action === 'warning')).toBe(true);
-    await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneOrganisationId: 'org_abc123' });
-    expect(store.organisations[0].controlPlaneOrganisationId).toBe('org_abc123');
-    const other = await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneOrganisationId: 'org_other1' });
+    await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneOrganisationId: '0199a1b2-c3d4-7e8f-9a0b-0000000000a1' });
+    expect(store.organisations[0].controlPlaneOrganisationId).toBe('0199a1b2-c3d4-7e8f-9a0b-0000000000a1');
+    const other = await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneOrganisationId: '0199a1b2-c3d4-7e8f-9a0b-0000000000b2' });
     expect(other.converged).toBe(false);
-    expect(store.organisations[0].controlPlaneOrganisationId).toBe('org_abc123');
+    expect(store.organisations[0].controlPlaneOrganisationId).toBe('0199a1b2-c3d4-7e8f-9a0b-0000000000a1');
   });
 
   it('is not derived from the legal entity and rejects malformed values', async () => {

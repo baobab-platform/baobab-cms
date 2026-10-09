@@ -5,6 +5,8 @@ import { canonicalIdField } from '../baobab/identity/field.js';
 import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
 import { CanonicalEventType } from '../baobab/events/types.js';
 
+const CONTROL_PLANE_ORGANISATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Legal entity within a tenant (ADR-0012 §4.2, §23). A legal entity is the
  * *default* tenant boundary, never a synonym for tenancy itself — a tenant
@@ -40,6 +42,12 @@ const Organisations: CollectionConfig = {
       type: 'text',
       unique: true,
       index: true,
+      validate: (value: unknown) => {
+        if (value === undefined || value === null || value === '') return true;
+        return typeof value === 'string' && CONTROL_PLANE_ORGANISATION_ID.test(value)
+          ? true
+          : 'Must be a Control Plane Organisation UUID (Shared organisation/v2 organisationId).';
+      },
       admin: {
         description:
           'The Control Plane PRIMARY Organisation id this projection mirrors (ADR-BCP-027). Set only from a Control Plane issuance, never invented and never derived from a legal entity. canonicalLegalEntityId is a separate, optional legal-actor reference.',

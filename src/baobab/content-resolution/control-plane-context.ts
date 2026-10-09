@@ -25,6 +25,7 @@ export interface ControlPlaneContextConfig {
 }
 
 const TENANT_ID = /^tn_[a-z0-9]+$/;
+const ORGANISATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function createControlPlaneContextValidator(config: ControlPlaneContextConfig) {
   const doFetch = config.fetchImpl ?? fetch;
@@ -64,7 +65,7 @@ export function createControlPlaneContextValidator(config: ControlPlaneContextCo
     // 400/401/403/404 all mean this context is not usable for this caller. Reasons are not distinguished.
     if (!response.ok) return { status: 'rejected' };
 
-    let payload: { tenant_id?: unknown; authority_purpose?: unknown; expires_at?: unknown; context_id?: unknown };
+    let payload: { tenant_id?: unknown; organisation_id?: unknown; authority_purpose?: unknown; expires_at?: unknown; context_id?: unknown };
     try {
       payload = await response.json();
     } catch {
@@ -78,10 +79,17 @@ export function createControlPlaneContextValidator(config: ControlPlaneContextCo
       typeof payload.tenant_id !== 'string' ||
       !TENANT_ID.test(payload.tenant_id) ||
       Number.isNaN(expires) ||
-      expires <= now().getTime()
+      expires <= now().getTime() ||
+      // organisation_id is optional (the v1 response predates ADR-BCP-027), but never accepted malformed.
+      (payload.organisation_id !== undefined &&
+        (typeof payload.organisation_id !== 'string' || !ORGANISATION_ID.test(payload.organisation_id)))
     ) {
       return { status: 'rejected' };
     }
-    return { status: 'valid', tenantId: payload.tenant_id };
+    return {
+      status: 'valid',
+      tenantId: payload.tenant_id,
+      ...(typeof payload.organisation_id === 'string' ? { organisationId: payload.organisation_id } : {}),
+    };
   };
 }

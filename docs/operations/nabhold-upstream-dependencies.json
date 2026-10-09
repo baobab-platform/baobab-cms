@@ -1,19 +1,155 @@
 {
   "note": "Recorded facts about work outside the CMS, with the date they were last established. The reconciliation report copies these; it does not re-observe them. Update with each change, keeping evidence.",
   "items": [
-    { "id": "shared-nbo-01", "title": "Shared staff-assisted admission contract (NBO-01)", "status": "DONE", "asOf": "2026-10-09", "evidence": "baobab-platform/shared#255 merged" },
-    { "id": "cp-nbo-01", "title": "Control Plane staff-assisted admission (NBO-01)", "status": "DONE", "asOf": "2026-10-09", "evidence": "baobab-platform/baobab-cp#289 merged; merged with the Foundation container vulnerability scan failing, a failure main already had" },
-    { "id": "cp-adr-026-027", "title": "ADR-BCP-026 and ADR-BCP-027 merged", "status": "DONE", "asOf": "2026-10-09", "evidence": "baobab-cp#290 and #291; sponsor instruction treats both as accepted" },
-    { "id": "cp-adr-status-text", "title": "ADR documents still read Proposed", "status": "OPEN", "asOf": "2026-10-09", "nextStep": "Record acceptance in the ADRs and the index through the Control Plane's own process." },
-    { "id": "cp-main-container-scan", "title": "Control Plane main fails the container vulnerability scan", "status": "OPEN", "asOf": "2026-10-09", "evidence": "foundation run 37899817711 on 4eb74511", "nextStep": "Bump the affected Go toolchain or base image in baobab-cp." },
-    { "id": "legal-claim-recorded", "title": "Nabhold CIPC identity recorded in the Shared registry as a claim with an evidence pointer", "status": "DONE", "asOf": "2026-10-09", "evidence": "baobab-platform/shared#252 merged" },
-    { "id": "legal-verification-case", "title": "Control Plane verification case for the Nabhold legal-person claim", "status": "OPEN", "asOf": "2026-10-09", "nextStep": "Open a case against approved source evidence." },
-    { "id": "company-secretary", "title": "Company Secretary appointment formalised", "status": "OPEN", "asOf": "2026-10-09", "evidence": "sponsor statement", "nextStep": "Formalise the appointment and record the sign-off." },
-    { "id": "nabhold-admission", "title": "Nabhold staff-assisted admission application created and decided", "status": "OPEN", "asOf": "2026-10-09", "nextStep": "Create through POST /v1/admission/applications with a real applicant principal; a different principal decides." },
-    { "id": "tenant-provisioning", "title": "Nabhold tenant provisioned by the Control Plane", "status": "OPEN", "asOf": "2026-10-09" },
-    { "id": "iam-federation", "title": "IAM workforce federation and workload client proven end to end", "status": "OPEN", "asOf": "2026-10-09" },
-    { "id": "shared-organisation-dimension", "title": "Shared content/v1 and tenant read model carry the PRIMARY Organisation", "status": "OPEN", "asOf": "2026-10-09", "evidence": "ADR-BCP-027 LA-01", "nextStep": "Shared amendment adding organisation_id." },
-    { "id": "domain-binding", "title": "nabhold.com binding approved and recorded", "status": "OPEN", "asOf": "2026-10-09", "evidence": "sponsor chose nabhold.com as canonical host; no approved binding recorded" },
-    { "id": "aws-account", "title": "AWS account for hosting", "status": "OPEN", "asOf": "2026-10-09", "evidence": "sponsor statement: none yet" }
+    {
+      "id": "shared-nbo-01",
+      "title": "Shared staff-assisted admission contract (NBO-01)",
+      "status": "DONE",
+      "asOf": "2026-10-09",
+      "evidence": "baobab-platform/shared#255 merged"
+    },
+    {
+      "id": "cp-nbo-01",
+      "title": "Control Plane staff-assisted admission (NBO-01)",
+      "status": "DONE",
+      "asOf": "2026-10-09",
+      "evidence": "baobab-platform/baobab-cp#289 merged; merged with the Foundation container vulnerability scan failing, a failure main already had"
+    },
+    {
+      "id": "cp-adr-026-027",
+      "title": "ADR-BCP-026 and ADR-BCP-027 merged",
+      "status": "DONE",
+      "asOf": "2026-10-09",
+      "evidence": "baobab-cp#290 and #291; sponsor instruction treats both as accepted"
+    },
+    {
+      "id": "cp-adr-status-text",
+      "title": "ADR-BCP-026 and ADR-BCP-027 accepted",
+      "status": "DONE",
+      "asOf": "2026-10-09",
+      "evidence": "Both ADRs read \"Accepted\" on baobab-cp main (2026-10-09)"
+    },
+    {
+      "id": "cp-main-container-scan",
+      "title": "Control Plane main fails the container vulnerability scan",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "foundation run 37899817711 on 4eb74511",
+      "nextStep": "Bump the affected Go toolchain or base image in baobab-cp."
+    },
+    {
+      "id": "legal-claim-recorded",
+      "title": "Nabhold CIPC identity recorded in the Shared registry as a claim with an evidence pointer",
+      "status": "DONE",
+      "asOf": "2026-10-09",
+      "evidence": "baobab-platform/shared#252 merged"
+    },
+    {
+      "id": "legal-verification-case",
+      "title": "Control Plane verification case for the Nabhold legal-person claim",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "nextStep": "Open a case against approved source evidence."
+    },
+    {
+      "id": "company-secretary",
+      "title": "Company Secretary appointment formalised",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "sponsor statement",
+      "nextStep": "Formalise the appointment and record the sign-off."
+    },
+    {
+      "id": "nabhold-admission",
+      "title": "Nabhold staff-assisted admission application created and decided",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "nextStep": "Create through POST /v1/admission/applications with a real applicant principal; a different principal decides."
+    },
+    {
+      "id": "tenant-provisioning",
+      "title": "Nabhold tenant provisioned by the Control Plane",
+      "status": "OPEN",
+      "asOf": "2026-10-09"
+    },
+    {
+      "id": "iam-federation",
+      "title": "IAM workforce federation and workload client proven end to end",
+      "status": "OPEN",
+      "asOf": "2026-10-09"
+    },
+    {
+      "id": "shared-organisation-dimension",
+      "title": "Shared content/v1 and the tenant read model carry the PRIMARY Organisation",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "Shared LA-01 (shared#256, 5930dcf) added organisation/v2, admission/v2 and control-plane/v2 schemas; content/v1 resolution and the tenant read model still have no organisation_id",
+      "nextStep": "Shared amendment adding organisation_id to the content resolution request and a v2 tenant read model."
+    },
+    {
+      "id": "domain-binding",
+      "title": "nabhold.com binding approved and recorded",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "sponsor chose nabhold.com as canonical host; no approved binding recorded"
+    },
+    {
+      "id": "aws-account",
+      "title": "AWS account for hosting",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "sponsor statement: none yet"
+    },
+    {
+      "id": "shared-la01",
+      "title": "Shared LA-01 Organisation-first contracts",
+      "status": "DONE",
+      "asOf": "2026-10-09",
+      "evidence": "baobab-platform/shared#256 merged at 5930dcf"
+    },
+    {
+      "id": "cp-la02",
+      "title": "Control Plane LA-02 nullable legal_entity_id and PRIMARY Organisation constraints",
+      "status": "DONE",
+      "asOf": "2026-10-09",
+      "evidence": "baobab-platform/baobab-cp#293 merged (migration 000102)"
+    },
+    {
+      "id": "cp-la03",
+      "title": "Control Plane LA-03 governed Organisation-first admission and tenant registration",
+      "status": "DONE",
+      "asOf": "2026-10-09",
+      "evidence": "baobab-platform/baobab-cp#294 merged (migration 000103); v2 routes disabled by default and not enabled in production configuration"
+    },
+    {
+      "id": "cp-v2-routes-enabled",
+      "title": "Control Plane v2 routes (primary-organisation preparation, POST /v2/tenants) enabled in a real environment",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "LA-03 runbook: OrganisationFirstV2 defaults false; cutover needs versioned API publication, a readiness and rollback decision, IAM integration and provider acceptance",
+      "nextStep": "Control Plane decision to enable; none recorded."
+    },
+    {
+      "id": "cp-v1-context-defaultless",
+      "title": "v1 platform-context consumers still require a default LegalEntity and fail closed for defaultless v2 tenants",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "LA-03 runbook, open downstream boundaries (LA-05)",
+      "nextStep": "LA-05 migrates context validation; until then a defaultless tenant would not resolve through POST /v1/platform-context/validate."
+    },
+    {
+      "id": "cp-la04-mandates",
+      "title": "Legal-actor mandates (Nabhold acting for ZuriBeans and Equator & Estate Co.)",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "LA-03 runbook: LA-04 not implemented"
+    },
+    {
+      "id": "cp-peo02-grace",
+      "title": "Founding sponsorship and 12-month documentary deferral runtime",
+      "status": "OPEN",
+      "asOf": "2026-10-09",
+      "evidence": "Shared organisation/v2 founding-admission.schema.json exists; no Control Plane migration or code found for it; 3/6/9-month reviews and expiry consequences exist only as ADR-BCP-026 text"
+    }
   ]
 }

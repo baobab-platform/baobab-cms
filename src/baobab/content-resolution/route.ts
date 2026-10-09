@@ -33,7 +33,7 @@ export interface AuthenticatedCaller {
 }
 
 export type ContextValidation =
-  | { status: 'valid'; tenantId: string }
+  | { status: 'valid'; tenantId: string; /** PRIMARY Organisation, when the Control Plane response carries one (ADR-BCP-027). */ organisationId?: string }
   | { status: 'rejected' }
   | { status: 'unavailable' };
 

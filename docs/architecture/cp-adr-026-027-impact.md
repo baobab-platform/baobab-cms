@@ -62,3 +62,26 @@ The report is read-only and must not fabricate. It will:
 Add a nullable `controlPlaneOrganisationId` to the CMS `organisations` collection now (additive migration, never invented, filled
 only from a Control Plane issuance, like `controlPlaneTenantId`)? It is low risk and lets the report check the PRIMARY
 Organisation mapping. The alternative is to wait for 027 acceptance and report that check as BLOCKED.
+
+
+## Status update, 2026-10-09 (after Shared LA-01 and Control Plane LA-02/LA-03 merged)
+
+Both ADRs now read **Accepted**. Shared LA-01 (`shared#256`, `5930dcf`), CP LA-02 (`baobab-cp#293`) and CP LA-03 (`baobab-cp#294`)
+are merged. This section replaces the earlier "if accepted" framing; the sections above are kept as the record of that review.
+
+**Done in the CMS since:**
+- `controlPlaneOrganisationId` is now validated as a UUID (Shared `organisation/v2` `organisationId`) in the collection and in the
+  onboarding planner. It is still filled only from a Control Plane issuance and never overwritten.
+- The Control Plane context validator carries an optional `organisation_id` and rejects a malformed one.
+- The provider declaration's Shared source revision is `5930dcf`; it validates with Shared's `validate-declaration`, and the
+  `content` and `capabilities` contracts did not change between the old and new revisions.
+
+**Still not available, so still not done (recorded in `nabhold-upstream-dependencies.json`):**
+- Shared has no `organisation_id` on `content/v1` resolution and no v2 tenant read model. The CMS does not change contracts locally.
+- The CP v2 routes are disabled by default and not enabled in any environment. No Nabhold tenant has been provisioned.
+- The CP LA-03 runbook says v1 context consumers still require a default LegalEntity and fail closed for defaultless v2 tenants
+  (LA-05). The resolve route's context validation is such a consumer, so a defaultless tenant would not resolve yet. This is
+  disclosed, not worked around.
+- Legal-actor mandates (LA-04) and the founding sponsorship and 12-month deferral runtime (PEO-02) are not implemented in CP.
+  Shared defines the sponsorship and deferral records; CP code for them was not found.
+- Decision recorded earlier as requested is now settled by the accepted ADR: the nullable `controlPlaneOrganisationId` stays.

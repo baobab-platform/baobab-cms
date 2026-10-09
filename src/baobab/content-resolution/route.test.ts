@@ -181,6 +181,14 @@ describe('Control Plane context validator', () => {
     }
   });
 
+  it('carries organisation_id when the Control Plane supplies a UUID and rejects a malformed one', async () => {
+    const ORG = '0199a1b2-c3d4-7e8f-9a0b-0000000000a1';
+    expect(await run(json(200, valid({ organisation_id: ORG })))).toEqual({ status: 'valid', tenantId: TENANT, organisationId: ORG });
+    for (const bad of ['NABHOLD', 'org_1', 42, '']) {
+      expect(await run(json(200, valid({ organisation_id: bad })))).toEqual({ status: 'rejected' });
+    }
+  });
+
   it('treats 4xx as rejected, 5xx/429/network/token failure as unavailable', async () => {
     for (const s of [400, 401, 403, 404]) expect(await run(json(s, {}))).toEqual({ status: 'rejected' });
     for (const s of [429, 500, 503]) expect(await run(json(s, {}))).toEqual({ status: 'unavailable' });

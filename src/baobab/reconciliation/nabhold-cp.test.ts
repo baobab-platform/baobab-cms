@@ -45,20 +45,20 @@ describe('reconciliation report', () => {
   });
 
   it('cannot confirm the PRIMARY Organisation while the read model does not carry it', () => {
-    const r = run(snap({ organisation: { controlPlaneOrganisationId: 'org_1', canonicalLegalEntityId: 'NABHOLD' } }));
+    const r = run(snap({ organisation: { controlPlaneOrganisationId: '0199a1b2-c3d4-7e8f-9a0b-0000000000a1', canonicalLegalEntityId: 'NABHOLD' } }));
     expect(get(r, 'primary-organisation').standing).toBe('UNVERIFIED');
     expect(get(r, 'primary-organisation').detail).toContain('LA-01');
   });
 
   it('confirms or contradicts a Control Plane answer', () => {
-    const s = snap({ tenant: { controlPlaneTenantId: 'tn_a1', isProjection: true, status: 'active' }, organisation: { controlPlaneOrganisationId: 'org_1' } });
-    const active = run(s, { status: 'found', tenant: { tenantId: 'tn_a1', observedState: 'active', organisationId: 'org_1' } });
+    const s = snap({ tenant: { controlPlaneTenantId: 'tn_a1', isProjection: true, status: 'active' }, organisation: { controlPlaneOrganisationId: '0199a1b2-c3d4-7e8f-9a0b-0000000000a1' } });
+    const active = run(s, { status: 'found', tenant: { tenantId: 'tn_a1', observedState: 'active', organisationId: '0199a1b2-c3d4-7e8f-9a0b-0000000000a1' } });
     expect(get(active, 'cp-tenant-id').standing).toBe('EVIDENCED');
     expect(get(active, 'primary-organisation').standing).toBe('EVIDENCED');
     expect(active.activationObserved).toBe(false); // a tenant is not a capability binding
     expect(get(run(s, { status: 'found', tenant: { tenantId: 'tn_a1', observedState: 'provisioning' } }), 'cp-tenant-id').standing).toBe('BLOCKED');
     expect(get(run(s, { status: 'found', tenant: { tenantId: 'tn_zz', observedState: 'active' } }), 'cp-tenant-id').standing).toBe('BLOCKED');
-    expect(get(run(s, { status: 'found', tenant: { tenantId: 'tn_a1', observedState: 'active', organisationId: 'org_2' } }), 'primary-organisation').standing).toBe('BLOCKED');
+    expect(get(run(s, { status: 'found', tenant: { tenantId: 'tn_a1', observedState: 'active', organisationId: '0199a1b2-c3d4-7e8f-9a0b-0000000000c3' } }), 'primary-organisation').standing).toBe('BLOCKED');
     expect(get(run(s, { status: 'not_found' }), 'cp-tenant-id').standing).toBe('BLOCKED');
     expect(get(run(s, { status: 'unavailable', reason: 'down' }), 'cp-tenant-id').standing).toBe('UNVERIFIED');
   });

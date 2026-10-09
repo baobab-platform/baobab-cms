@@ -6,7 +6,7 @@
  *   tsx scripts/onboarding/nabhold.ts --verify              # read-only; exit 1 unless converged
  *   tsx scripts/onboarding/nabhold.ts --apply --projection-mode local
  *   Optional: --domain <host> (repeatable, approved hostnames only)
- *             --control-plane-organisation-id <id> (the PRIMARY Organisation, from a Control Plane issuance; fills a blank value only)
+ *             --control-plane-organisation-id <uuid> (the PRIMARY Organisation UUID, from a Control Plane issuance; fills a blank value only)
  *             --control-plane-tenant-id <tn_...> (from a Control Plane issuance; fills a blank value only)
  *
  * Decision logic lives in src/baobab/onboarding/nabhold.ts (unit tested).
