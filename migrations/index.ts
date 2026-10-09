@@ -5,6 +5,7 @@ import * as migration_20261009_055853_site_configurations from './20261009_05585
 import * as migration_20261009_060938_tenant_control_plane_id from './20261009_060938_tenant_control_plane_id.js';
 import * as migration_20261009_073426_drop_singleton_fields from './20261009_073426_drop_singleton_fields.js';
 import * as migration_20261009_073430_add_estate_shaped_fields from './20261009_073430_add_estate_shaped_fields.js';
+import * as migration_20261009_083520_organisation_control_plane_id from './20261009_083520_organisation_control_plane_id.js';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20261009_073430_add_estate_shaped_fields.up,
     down: migration_20261009_073430_add_estate_shaped_fields.down,
-    name: '20261009_073430_add_estate_shaped_fields'
+    name: '20261009_073430_add_estate_shaped_fields',
+  },
+  {
+    up: migration_20261009_083520_organisation_control_plane_id.up,
+    down: migration_20261009_083520_organisation_control_plane_id.down,
+    name: '20261009_083520_organisation_control_plane_id'
   },
 ];

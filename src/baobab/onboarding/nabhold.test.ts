@@ -175,6 +175,28 @@ describe('Control Plane tenant id', () => {
   });
 });
 
+describe('Control Plane organisation id', () => {
+  it('is never invented, warns when absent, fills a blank once and never overwrites', async () => {
+    const { repo, store } = memoryRepo();
+    const first = await onboardNabhold(repo, { ...base, mode: 'apply' });
+    expect(store.organisations[0].controlPlaneOrganisationId).toBeUndefined();
+    expect(first.steps.some((s) => s.step === 'organisation-control-plane-id' && s.action === 'warning')).toBe(true);
+    await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneOrganisationId: 'org_abc123' });
+    expect(store.organisations[0].controlPlaneOrganisationId).toBe('org_abc123');
+    const other = await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneOrganisationId: 'org_other1' });
+    expect(other.converged).toBe(false);
+    expect(store.organisations[0].controlPlaneOrganisationId).toBe('org_abc123');
+  });
+
+  it('is not derived from the legal entity and rejects malformed values', async () => {
+    const { repo, store } = memoryRepo();
+    await onboardNabhold(repo, { ...base, mode: 'apply' });
+    expect(store.organisations[0].controlPlaneOrganisationId).not.toBe('NABHOLD');
+    const bad = await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneOrganisationId: 'x y' });
+    expect(bad.blockers.join(' ')).toContain('CONTROL_PLANE_ORGANISATION_ID_INVALID');
+  });
+});
+
 describe('detectEnvironment', () => {
   it('treats unknown or production as production', () => {
     expect(detectEnvironment({})).toBe('production');

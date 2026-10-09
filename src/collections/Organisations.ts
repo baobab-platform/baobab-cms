@@ -36,6 +36,16 @@ const Organisations: CollectionConfig = {
     canonicalIdField({ name: 'canonicalLegalEntityId', entityType: 'LEGAL_ENTITY' }),
     tenantOwnedField(),
     {
+      name: 'controlPlaneOrganisationId',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: {
+        description:
+          'The Control Plane PRIMARY Organisation id this projection mirrors (ADR-BCP-027). Set only from a Control Plane issuance, never invented and never derived from a legal entity. canonicalLegalEntityId is a separate, optional legal-actor reference.',
+      },
+    },
+    {
       name: 'name',
       type: 'text',
       required: true,

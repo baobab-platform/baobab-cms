@@ -2,8 +2,9 @@
 
 Route: `POST /v1/content/resolve?context_id=<uuid>` (Shared `contracts/content/v1/openapi.yaml`, merged in Shared #254).
 Code: `src/app/v1/content/resolve/route.ts` wiring `src/baobab/content-resolution/{route,caller-auth,control-plane-context,payload-source}.ts`.
-Status: **implemented in code, not activated.** The capability stays CONTRACTED in `.baobab/capability-provider.yaml` until the
-Control Plane holds an ACTIVE provider binding and the estate has a granted workload client.
+Status: **implemented in code, not activated.** `.baobab/capability-provider.yaml` declares PARTIAL support (repository evidence only; it validates
+against Shared's declaration schema). No Control Plane binding, grant or certification exists, and the route has not been exercised against a live
+Control Plane or identity provider.
 
 ## Pipeline (each step fails closed)
 

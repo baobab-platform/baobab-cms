@@ -86,6 +86,8 @@ export interface OnboardingOptions {
   approvedDomains?: string[];
   /** The Control Plane tenant id (tn_...), supplied from a Control Plane issuance. Never invented here. */
   controlPlaneTenantId?: string;
+  /** The Control Plane PRIMARY Organisation id (ADR-BCP-027). Supplied from a Control Plane issuance; never invented or derived from a legal entity. */
+  controlPlaneOrganisationId?: string;
   now?: () => Date;
   /** Supplies a throwaway credential for the machine identity. Never logged or stored by this module. */
   generateSecret: () => string;
@@ -118,6 +120,10 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
   const approvedDomains = options.approvedDomains ?? [];
   const writing = options.mode === 'apply';
   const cpTenantId = options.controlPlaneTenantId;
+  const cpOrgId = options.controlPlaneOrganisationId;
+  if (cpOrgId !== undefined && !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(cpOrgId)) {
+    blockers.push('CONTROL_PLANE_ORGANISATION_ID_INVALID: expected a Control Plane canonical organisation id.');
+  }
   if (cpTenantId !== undefined && !/^tn_[a-z0-9]+$/.test(cpTenantId)) {
     blockers.push('CONTROL_PLANE_TENANT_ID_INVALID: expected a Control Plane tenant id such as tn_abc123.');
   }
@@ -302,6 +308,7 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
       tenant: tenantId,
       // The Shared first-party id is the canonical reference. It is supplied, not minted.
       canonicalLegalEntityId: NABHOLD.firstPartyId,
+      ...(cpOrgId ? { controlPlaneOrganisationId: cpOrgId } : {}),
     }),
     check: (doc) => {
       const problems: string[] = [];
@@ -309,9 +316,33 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
         problems.push(`canonicalLegalEntityId is "${String(doc.canonicalLegalEntityId)}", expected ${NABHOLD.firstPartyId}`);
       }
       if (tenant && asString(doc.tenant) !== String(tenant.id)) problems.push('organisation belongs to a different tenant');
+      if (cpOrgId && doc.controlPlaneOrganisationId && doc.controlPlaneOrganisationId !== cpOrgId) {
+        problems.push('controlPlaneOrganisationId differs from the supplied Control Plane organisation id; it is never overwritten');
+      }
       return problems;
     },
   });
+  if (organisation && cpOrgId && !organisation.controlPlaneOrganisationId && blockers.length === 0) {
+    if (writing) {
+      await repo.update('organisations', String(organisation.id), { controlPlaneOrganisationId: cpOrgId });
+      steps.push({ step: 'organisation-control-plane-id', collection: 'organisations', action: 'create', detail: 'filled a blank value' });
+    } else {
+      steps.push({
+        step: 'organisation-control-plane-id',
+        collection: 'organisations',
+        action: options.mode === 'verify' ? 'missing' : 'create',
+        detail: options.mode === 'verify' ? 'not set' : 'planned; nothing written',
+      });
+      if (options.mode === 'verify') blockers.push('organisation-control-plane-id: not set');
+    }
+  } else if (organisation && !organisation.controlPlaneOrganisationId) {
+    steps.push({
+      step: 'organisation-control-plane-id',
+      collection: 'organisations',
+      action: 'warning',
+      detail: 'not set; the primary Organisation cannot be reconciled until the Control Plane issues its id (ADR-BCP-027)',
+    });
+  }
   // A second organisation reusing the code but not the canonical id would be a forged or duplicate projection.
   const byCode = await repo.find('organisations', 'code', NABHOLD.organisationCode, 2);
   if (byCode.length > 0 && !organisation) {
