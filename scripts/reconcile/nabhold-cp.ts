@@ -5,11 +5,12 @@
  *   tsx scripts/reconcile/nabhold-cp.ts                 # JSON
  *   tsx scripts/reconcile/nabhold-cp.ts --format text
  *   tsx scripts/reconcile/nabhold-cp.ts --strict        # exit 1 if any finding is BLOCKED
+ *   tsx scripts/reconcile/nabhold-cp.ts --out report.json   # write the report to a file (Payload's own log lines share stdout)
  *
  * Optional: CONTROL_PLANE_URL and CMS_CP_READ_TOKEN let it read the tenant from the Control Plane. Without them those
  * checks say "not attempted". No secret is printed.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { getPayload } from 'payload';
 import config from '../../payload.config.js';
 import { NABHOLD } from '../../src/baobab/onboarding/nabhold.js';
@@ -25,6 +26,8 @@ import {
 const args = process.argv.slice(2);
 const text = args.includes('--format') && args[args.indexOf('--format') + 1] === 'text';
 const strict = args.includes('--strict');
+const outIndex = args.indexOf('--out');
+const outPath = outIndex >= 0 ? args[outIndex + 1] : undefined;
 
 async function main(): Promise<number> {
   const payload = await getPayload({ config });
@@ -79,7 +82,9 @@ async function main(): Promise<number> {
   ).items;
 
   const report = buildReconciliationReport({ snapshot, controlPlane, upstream });
-  console.log(text ? renderText(report) : JSON.stringify(report, null, 2));
+  const rendered = text ? renderText(report) : JSON.stringify(report, null, 2);
+  if (outPath) writeFileSync(outPath, `${rendered}\n`, { mode: 0o600 });
+  else console.log(rendered);
   return strict && report.summary.BLOCKED > 0 ? 1 : 0;
 }
 
