@@ -16,6 +16,7 @@ import ProductContent from './src/collections/ProductContent.js';
 import PortfolioCompanies from './src/collections/PortfolioCompanies.js';
 import Sectors from './src/collections/Sectors.js';
 import Insights from './src/collections/Insights.js';
+import SiteConfigurations from './src/collections/SiteConfigurations.js';
 import Media from './src/collections/Media.js';
 import Outbox from './src/collections/Outbox.js';
 import AuditLog from './src/collections/AuditLog.js';
@@ -67,6 +68,7 @@ export default buildConfig({
     PortfolioCompanies,
     Sectors,
     Insights,
+    SiteConfigurations,
     Media,
     // Internal system collections (hidden from ordinary editors)
     Outbox,
