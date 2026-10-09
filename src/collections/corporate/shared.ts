@@ -4,6 +4,7 @@ import { tenantScopedAccess } from '../../baobab/tenancy/access.js';
 import { canonicalIdField } from '../../baobab/identity/field.js';
 import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../../baobab/events/hook.js';
 import { CanonicalEventType } from '../../baobab/events/types.js';
+import { publicationGuardBeforeChange, publicationGuardBeforeDelete } from '../../baobab/authorization/publication.js';
 
 /**
  * Building blocks for the corporate editorial collections that the Nabhold
@@ -196,6 +197,8 @@ export function corporateCollection(params: {
       defaultColumns: [params.useAsTitle, 'slug', 'publicationState', 'digitalEstate', 'locale'],
     },
     hooks: {
+      beforeChange: [publicationGuardBeforeChange],
+      beforeDelete: [publicationGuardBeforeDelete],
       afterChange: [
         canonicalAfterChangeHook<{ id: string | number; canonicalEntityId?: string; publicationState?: string }>({
           canonicalEntityType: params.entityType,
