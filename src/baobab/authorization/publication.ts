@@ -96,6 +96,59 @@ const STATES: EditorialState[] = ['DRAFT', 'PUBLISHED', 'UNPUBLISHED', 'ARCHIVED
 const asState = (value: unknown): EditorialState | undefined =>
   STATES.includes(value as EditorialState) ? (value as EditorialState) : undefined;
 
+/** `pages` keeps its original lowercase `status`; map it onto the editorial states. */
+const PAGE_STATUS: Record<string, EditorialState> = { draft: 'DRAFT', published: 'PUBLISHED', archived: 'ARCHIVED' };
+export const asPageState = (value: unknown): EditorialState | undefined =>
+  typeof value === 'string' ? PAGE_STATUS[value] : undefined;
+
+export interface PublicationGuardOptions {
+  /** Field holding the state, and how to read it. Defaults to `publicationState`. */
+  stateField?: string;
+  readState?: (value: unknown) => EditorialState | undefined;
+  /**
+   * Expand step of an expand-and-contract migration (ADR-0019). While true, a non-administrator with NO editorial roles is not
+   * checked here and keeps the access layer's behaviour; anyone who has editorial roles is fully enforced. This is a known,
+   * temporary gap: until every editor has editorial roles and this is switched off, an editor without roles is not role-checked.
+   */
+  transitional?: boolean;
+}
+
+function skipsGuard(req: unknown, transitional: boolean | undefined): boolean {
+  if (!transitional) return false;
+  const r = req as ContextRequest & { user?: EditorialUser | null };
+  const context = tryResolveContext(r);
+  if (!context || context.isPlatformAdmin) return false;
+  return ((r.user as EditorialUser | null | undefined)?.editorialRoles ?? []).length === 0;
+}
+
+export function createPublicationGuard(options: PublicationGuardOptions = {}): {
+  beforeChange: CollectionBeforeChangeHook;
+  beforeDelete: CollectionBeforeDeleteHook;
+} {
+  const field = options.stateField ?? 'publicationState';
+  const read = options.readState ?? asState;
+  return {
+    beforeChange: ({ data, originalDoc, operation, req }) => {
+      if (operation !== 'create' && operation !== 'update') return data;
+      if (skipsGuard(req, options.transitional)) return data;
+      const previous = operation === 'update' ? read(originalDoc?.[field]) : undefined;
+      const next = read(data?.[field]) ?? previous ?? 'DRAFT';
+      const estate = relId(data?.digitalEstate) ?? relId(originalDoc?.digitalEstate);
+      assertPermitted(req, requiredPermissions({ operation, previous, next }), estate);
+      return data;
+    },
+    beforeDelete: async ({ id, req, collection }) => {
+      if (skipsGuard(req, options.transitional)) return;
+      const doc = await req.payload.findByID({ collection: collection.slug as never, id, depth: 0, overrideAccess: true, req });
+      const state = read((doc as Record<string, unknown> | null)?.[field]);
+      const estate = relId((doc as { digitalEstate?: unknown } | null)?.digitalEstate);
+      const needed: Permission[] = [Permission.DELETE];
+      if (state === 'PUBLISHED') needed.push(Permission.UNPUBLISH);
+      assertPermitted(req, needed, estate);
+    },
+  };
+}
+
 export const publicationGuardBeforeChange: CollectionBeforeChangeHook = ({ data, originalDoc, operation, req }) => {
   if (operation !== 'create' && operation !== 'update') return data;
   const previous = operation === 'update' ? asState(originalDoc?.publicationState) : undefined;

@@ -35,8 +35,11 @@ Preview is not an editor feature of this API. A caller sees DRAFT content only t
 
 ## Not done, by decision or dependency
 
-- `pages` and `product-content` are not guarded yet. Existing installations rely on the legacy `roles` field, so applying the
-  guard there needs a migration plan for existing editors (expand and contract, ADR-0019).
+- `pages` is guarded in a **transitional** mode (expand step of ADR-0019): an editor who has editorial roles is fully enforced,
+  and a platform administrator and the system actor pass, but a non-administrator with **no** editorial roles is not role-checked
+  and keeps the access layer's behaviour. That is a known, temporary gap, not a finished control. To close it, give every existing
+  editor editorial roles, then remove `transitional: true` in `src/collections/Pages.ts` (the contract step). `product-content` is
+  not guarded yet and needs the same plan (it also has a `REVIEW` state that the guard does not yet treat).
 - REVIEWER holds `review` but there is no review state, so review is advisory. Four-eyes approval (publisher differs from last editor)
   and legal sign-off before publishing group-profile or legal notices need a sponsor decision, a state and a migration.
 - Mapping IAM groups to editorial roles is IAM's to define; nothing here assumes group names.

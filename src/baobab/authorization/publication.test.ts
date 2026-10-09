@@ -7,6 +7,8 @@ import {
   platformAdministratorOnlyField,
   publicationGuardBeforeChange,
   requiredPermissions,
+  asPageState,
+  createPublicationGuard,
 } from './publication.js';
 
 type U = {
@@ -105,5 +107,50 @@ describe('wiring', () => {
     expect(call(true)).toBe(true);
     expect(call(false)).toBe(false);
     expect(platformAdministratorOnlyField({ req: {} } as never)).toBe(false);
+  });
+});
+
+
+describe('createPublicationGuard for pages (transitional)', () => {
+  const guard = createPublicationGuard({ stateField: 'status', readState: asPageState, transitional: true });
+  const change = (user: U | null, operation: 'create' | 'update', data: Record<string, unknown>, originalDoc?: Record<string, unknown>) => () =>
+    guard.beforeChange({ data, originalDoc, operation, req: req(user), collection: {} as never, context: {} as never });
+
+  it('maps the page status values onto editorial states', () => {
+    expect(asPageState('draft')).toBe('DRAFT');
+    expect(asPageState('published')).toBe('PUBLISHED');
+    expect(asPageState('archived')).toBe('ARCHIVED');
+    expect(asPageState('PUBLISHED')).toBeUndefined();
+    expect(asPageState(undefined)).toBeUndefined();
+  });
+
+  it('enforces an editor who has editorial roles', () => {
+    const author = actor(['AUTHOR']);
+    expect(change(author, 'create', { status: 'draft' })).not.toThrow();
+    expect(change(author, 'update', { status: 'published' }, { status: 'draft' })).toThrow(PublicationDeniedError);
+    expect(change(author, 'create', { status: 'published' })).toThrow(PublicationDeniedError);
+    const editor = actor(['EDITOR']);
+    expect(change(editor, 'update', { title: 'x' }, { status: 'published' })).toThrow(PublicationDeniedError);
+    const publisher = actor(['EDITOR', 'PUBLISHER']);
+    expect(change(publisher, 'update', { status: 'published' }, { status: 'draft' })).not.toThrow();
+    expect(change(publisher, 'update', { status: 'draft' }, { status: 'published' })).not.toThrow(); // PUBLISHER holds unpublish
+    expect(change(actor(['EDITOR']), 'update', { status: 'draft' }, { status: 'published' })).toThrow(PublicationDeniedError);
+  });
+
+  it('leaves a legacy editor with no editorial roles on the access layer only (documented transitional gap)', () => {
+    const legacy = actor([]);
+    expect(change(legacy, 'update', { status: 'published' }, { status: 'draft' })).not.toThrow();
+  });
+
+  it('still denies an unauthenticated actor and passes a platform administrator', () => {
+    expect(change(null, 'create', { status: 'draft' })).toThrow(PublicationDeniedError);
+    expect(change(actor([], { platformAdministrator: true }), 'update', { status: 'published' }, { status: 'draft' })).not.toThrow();
+  });
+
+  it('is strict once transitional is off', () => {
+    const strict = createPublicationGuard({ stateField: 'status', readState: asPageState });
+    expect(() =>
+      strict.beforeChange({ data: { status: 'published' }, originalDoc: { status: 'draft' }, operation: 'update', req: req(actor([])), collection: {} as never, context: {} as never }),
+    ).toThrow(PublicationDeniedError);
   });
 });

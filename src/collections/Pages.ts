@@ -5,6 +5,10 @@ import { tenantScopedAccess } from '../baobab/tenancy/access.js';
 import { canonicalIdField } from '../baobab/identity/field.js';
 import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
 import { CanonicalEventType } from '../baobab/events/types.js';
+import { asPageState, createPublicationGuard } from '../baobab/authorization/publication.js';
+
+/** Transitional (ADR-0019 expand step): editors with editorial roles are enforced; legacy editors with none are not yet. */
+const pageGuard = createPublicationGuard({ stateField: 'status', readState: asPageState, transitional: true });
 
 type PageStatus = 'draft' | 'published' | 'archived';
 
@@ -63,6 +67,8 @@ const Pages: CollectionConfig = {
   },
   access: tenantScopedAccess({ writeCapability: 'content.management' }),
   hooks: {
+    beforeChange: [pageGuard.beforeChange],
+    beforeDelete: [pageGuard.beforeDelete],
     afterChange: [
       canonicalAfterChangeHook<{
         id: string | number;
