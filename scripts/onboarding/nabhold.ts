@@ -6,6 +6,7 @@
  *   tsx scripts/onboarding/nabhold.ts --verify              # read-only; exit 1 unless converged
  *   tsx scripts/onboarding/nabhold.ts --apply --projection-mode local
  *   Optional: --domain <host> (repeatable, approved hostnames only)
+ *             --control-plane-tenant-id <tn_...> (from a Control Plane issuance; fills a blank value only)
  *
  * Decision logic lives in src/baobab/onboarding/nabhold.ts (unit tested).
  * See docs/operations/onboard-nabhold.md. No secret is ever printed.
@@ -25,6 +26,7 @@ function parseArgs(argv: string[]) {
   const modes: Mode[] = [];
   let projectionMode: 'local' | 'none' = 'none';
   const domains: string[] = [];
+  let controlPlaneTenantId: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--apply') modes.push('apply');
@@ -34,6 +36,8 @@ function parseArgs(argv: string[]) {
       const value = argv[++i];
       if (value !== 'local') throw new Error('--projection-mode only supports "local"');
       projectionMode = 'local';
+    } else if (arg === '--control-plane-tenant-id') {
+      controlPlaneTenantId = argv[++i];
     } else if (arg === '--domain') {
       const value = argv[++i];
       if (!value || !/^[a-z0-9.-]+$/.test(value)) throw new Error('--domain needs a lowercase hostname');
@@ -41,7 +45,7 @@ function parseArgs(argv: string[]) {
     } else throw new Error(`Unknown argument: ${arg}`);
   }
   if (modes.length > 1) throw new Error('Choose only one of --dry-run, --apply, --verify');
-  return { mode: modes[0] ?? 'dry-run', projectionMode, domains };
+  return { mode: modes[0] ?? 'dry-run', projectionMode, domains, controlPlaneTenantId };
 }
 
 async function main(): Promise<number> {
@@ -68,6 +72,16 @@ async function main(): Promise<number> {
       });
       return doc as never;
     },
+    async update(collection, id, data) {
+      const doc = await payload.update({
+        collection: collection as 'tenants',
+        id,
+        data: data as never,
+        user: SYSTEM_ACTOR as never,
+        overrideAccess: true,
+      });
+      return doc as never;
+    },
   };
 
   const report = await onboardNabhold(repo, {
@@ -75,6 +89,7 @@ async function main(): Promise<number> {
     projectionMode: args.projectionMode,
     environment: detectEnvironment(process.env),
     approvedDomains: args.domains,
+    controlPlaneTenantId: args.controlPlaneTenantId,
     generateSecret: () => randomBytes(48).toString('base64url'),
   });
 

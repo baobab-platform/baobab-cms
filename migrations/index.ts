@@ -2,6 +2,7 @@ import * as migration_20260905_121418_initial_schema from './20260905_121418_ini
 import * as migration_20260912_172242 from './20260912_172242.js';
 import * as migration_20261008_210243_corporate_content from './20261008_210243_corporate_content.js';
 import * as migration_20261009_055853_site_configurations from './20261009_055853_site_configurations.js';
+import * as migration_20261009_060938_tenant_control_plane_id from './20261009_060938_tenant_control_plane_id.js';
 
 export const migrations = [
   {
@@ -22,6 +23,11 @@ export const migrations = [
   {
     up: migration_20261009_055853_site_configurations.up,
     down: migration_20261009_055853_site_configurations.down,
-    name: '20261009_055853_site_configurations'
+    name: '20261009_055853_site_configurations',
+  },
+  {
+    up: migration_20261009_060938_tenant_control_plane_id.up,
+    down: migration_20261009_060938_tenant_control_plane_id.down,
+    name: '20261009_060938_tenant_control_plane_id'
   },
 ];

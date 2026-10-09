@@ -15,6 +15,11 @@ function memoryRepo(seed: Record<string, Row[]> = {}) {
       (store[collection] ??= []).push(row);
       return row;
     },
+    async update(collection, id, data) {
+      const row = (store[collection] ?? []).find((r) => r.id === id)!;
+      Object.assign(row, data);
+      return row;
+    },
   };
   return { repo, store };
 }
@@ -140,6 +145,33 @@ describe('onboardNabhold', () => {
     const text = JSON.stringify(store);
     expect(text).not.toMatch(/\d{4}\/\d{6}\/\d{2}/);
     expect(text).not.toContain('9470182230');
+  });
+});
+
+describe('Control Plane tenant id', () => {
+  it('is never set unless supplied, and warns', async () => {
+    const { repo, store } = memoryRepo();
+    const report = await onboardNabhold(repo, { ...base, mode: 'apply' });
+    expect(store.tenants[0].controlPlaneTenantId).toBeUndefined();
+    expect(report.steps.some((s) => s.step === 'tenant-control-plane-id' && s.action === 'warning')).toBe(true);
+  });
+
+  it('is set on create, filled when blank, and never overwritten', async () => {
+    const { repo, store } = memoryRepo();
+    await onboardNabhold(repo, { ...base, mode: 'apply' });
+    await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneTenantId: 'tn_abc123' });
+    expect(store.tenants[0].controlPlaneTenantId).toBe('tn_abc123');
+    const other = await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneTenantId: 'tn_other9' });
+    expect(other.converged).toBe(false);
+    expect(store.tenants[0].controlPlaneTenantId).toBe('tn_abc123');
+  });
+
+  it('rejects a malformed value without writing', async () => {
+    const { repo, store } = memoryRepo();
+    const report = await onboardNabhold(repo, { ...base, mode: 'apply', controlPlaneTenantId: 'nabhold' });
+    expect(report.converged).toBe(false);
+    expect(report.blockers.join(' ')).toContain('CONTROL_PLANE_TENANT_ID_INVALID');
+    expect(Object.keys(store)).toHaveLength(0);
   });
 });
 

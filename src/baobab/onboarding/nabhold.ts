@@ -73,6 +73,8 @@ export interface ProjectionRepository {
   /** Up to `limit` documents whose `field` equals `value`. */
   find(collection: string, field: string, value: string, limit: number): Promise<Doc[]>;
   create(collection: string, data: Record<string, unknown>): Promise<Doc>;
+  /** Sets fields on one document. Used only to fill a blank Control Plane tenant id, never to overwrite. */
+  update(collection: string, id: string, data: Record<string, unknown>): Promise<Doc>;
 }
 
 export interface OnboardingOptions {
@@ -82,6 +84,8 @@ export interface OnboardingOptions {
   environment: 'production' | 'non-production';
   /** Hostnames approved for binding. Empty by default: domains are routing data and are never invented. */
   approvedDomains?: string[];
+  /** The Control Plane tenant id (tn_...), supplied from a Control Plane issuance. Never invented here. */
+  controlPlaneTenantId?: string;
   now?: () => Date;
   /** Supplies a throwaway credential for the machine identity. Never logged or stored by this module. */
   generateSecret: () => string;
@@ -113,6 +117,10 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
   const ids: Record<string, string> = {};
   const approvedDomains = options.approvedDomains ?? [];
   const writing = options.mode === 'apply';
+  const cpTenantId = options.controlPlaneTenantId;
+  if (cpTenantId !== undefined && !/^tn_[a-z0-9]+$/.test(cpTenantId)) {
+    blockers.push('CONTROL_PLANE_TENANT_ID_INVALID: expected a Control Plane tenant id such as tn_abc123.');
+  }
 
   const report = (): OnboardingReport => ({
     mode: options.mode,
@@ -219,6 +227,7 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
       isolationProfile: 'shared-logical',
       defaultLocale: NABHOLD.locale,
       supportedLocales: [NABHOLD.locale],
+      ...(cpTenantId ? { controlPlaneTenantId: cpTenantId } : {}),
       isProjection: true,
       lastSyncedAt: stamp,
       metadata: {
@@ -238,6 +247,9 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
     check: (doc) => {
       const problems: string[] = [];
       if (doc.status !== 'active') problems.push(`tenant status is "${String(doc.status)}", expected active`);
+      if (cpTenantId && doc.controlPlaneTenantId && doc.controlPlaneTenantId !== cpTenantId) {
+        problems.push('controlPlaneTenantId differs from the supplied Control Plane tenant id; it is never overwritten');
+      }
       if (options.mode === 'verify' && doc.isProjection === true) {
         const synced = Date.parse(String(doc.lastSyncedAt ?? ''));
         if (Number.isNaN(synced) || now().getTime() - synced > NABHOLD.maxProjectionAgeMs) {
@@ -252,6 +264,28 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
       return problems;
     },
   });
+
+  if (tenant && cpTenantId && !tenant.controlPlaneTenantId && blockers.length === 0) {
+    if (writing) {
+      await repo.update('tenants', String(tenant.id), { controlPlaneTenantId: cpTenantId });
+      steps.push({ step: 'tenant-control-plane-id', collection: 'tenants', action: 'create', detail: 'filled a blank value' });
+    } else {
+      steps.push({
+        step: 'tenant-control-plane-id',
+        collection: 'tenants',
+        action: options.mode === 'verify' ? 'missing' : 'create',
+        detail: options.mode === 'verify' ? 'not set' : 'planned; nothing written',
+      });
+      if (options.mode === 'verify') blockers.push('tenant-control-plane-id: not set');
+    }
+  } else if (tenant && !tenant.controlPlaneTenantId) {
+    steps.push({
+      step: 'tenant-control-plane-id',
+      collection: 'tenants',
+      action: 'warning',
+      detail: 'not set; content resolution refuses every context until the Control Plane issues the tenant id',
+    });
+  }
 
   // ---- 2. Organisation (legal-entity projection) ---------------------------
   const tenantId = asString(tenant?.id) ?? '(pending)';
