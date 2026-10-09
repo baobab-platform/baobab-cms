@@ -70,6 +70,12 @@ const Pages: CollectionConfig = {
         status?: PageStatus;
       }>({
         canonicalEntityType: 'PAGE',
+        buildPayload: (doc) => ({
+          id: doc.id,
+          collection: 'pages',
+          contentKey: (doc as { contentKey?: string }).contentKey,
+          slug: (doc as { slug?: string }).slug,
+        }),
         eventTypeFor: (operation, doc, previousDoc) => {
           if (operation === 'create') return CanonicalEventType.CONTENT_CREATED;
           if (doc.status === 'published' && previousDoc?.status !== 'published') {
@@ -88,6 +94,12 @@ const Pages: CollectionConfig = {
     afterDelete: [
       canonicalAfterDeleteHook({
         canonicalEntityType: 'PAGE',
+        buildPayload: (doc) => ({
+          id: doc.id,
+          collection: 'pages',
+          contentKey: (doc as { contentKey?: string }).contentKey,
+          slug: (doc as { slug?: string }).slug,
+        }),
         eventTypeFor: () => CanonicalEventType.CONTENT_RETIRED,
       }),
     ],

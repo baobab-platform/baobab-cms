@@ -10,6 +10,11 @@ export interface RunOutboxDispatchCycleParams {
   batchSize?: number;
   retryPolicy?: RetryPolicy;
   now?: Date;
+  /**
+   * An entry left in PUBLISHING longer than this is assumed to belong to a crashed worker and becomes due again.
+   * Delivery is at-least-once and consumers are idempotent (ADR-0018 §38-41).
+   */
+  publishingLeaseMs?: number;
 }
 
 export interface OutboxDispatchCycleResult {
@@ -36,12 +41,14 @@ interface OutboxDoc {
 export async function runOutboxDispatchCycle(params: RunOutboxDispatchCycleParams): Promise<OutboxDispatchCycleResult> {
   const { payload, publisher, batchSize = 25, retryPolicy = DEFAULT_RETRY_POLICY } = params;
   const now = params.now ?? new Date();
+  const staleBefore = new Date(now.getTime() - (params.publishingLeaseMs ?? 5 * 60 * 1000)).toISOString();
 
   const due = await payload.find({
     collection: 'outbox',
     where: {
       or: [
         { status: { equals: OutboxStatus.PENDING } },
+        { and: [{ status: { equals: OutboxStatus.PUBLISHING } }, { updatedAt: { less_than: staleBefore } }] },
         {
           and: [
             { status: { equals: OutboxStatus.FAILED_RETRYABLE } },
@@ -72,7 +79,8 @@ export async function runOutboxDispatchCycle(params: RunOutboxDispatchCycleParam
       result.published += 1;
     } catch (error) {
       const attemptCount = (doc.attemptCount ?? 0) + 1;
-      const outcome = decideFailureOutcome(attemptCount, retryPolicy);
+      const permanent = (error as { permanent?: unknown } | null)?.permanent === true;
+      const outcome = permanent ? OutboxStatus.FAILED_TERMINAL : decideFailureOutcome(attemptCount, retryPolicy);
       const nextAttemptAt =
         outcome === 'FAILED_RETRYABLE'
           ? new Date(now.getTime() + computeBackoffMs(attemptCount, retryPolicy)).toISOString()

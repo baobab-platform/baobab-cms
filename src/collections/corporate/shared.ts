@@ -179,6 +179,17 @@ export function eventTypeFor(
   return CanonicalEventType.CONTENT_UPDATED;
 }
 
+/** Event payload that lets a consumer address the changed record without reading it (ADR-0018). */
+export function eventPayload(collection: string) {
+  return (doc: { id: string | number; slug?: string; contentKey?: string; publicationState?: string }) => ({
+    id: doc.id,
+    collection,
+    slug: doc.slug,
+    contentKey: doc.contentKey,
+    publicationState: doc.publicationState,
+  });
+}
+
 export function corporateCollection(params: {
   slug: string;
   labels: { singular: string; plural: string };
@@ -202,12 +213,14 @@ export function corporateCollection(params: {
       afterChange: [
         canonicalAfterChangeHook<{ id: string | number; canonicalEntityId?: string; publicationState?: string }>({
           canonicalEntityType: params.entityType,
+          buildPayload: eventPayload(params.slug),
           eventTypeFor,
         }),
       ],
       afterDelete: [
         canonicalAfterDeleteHook({
           canonicalEntityType: params.entityType,
+          buildPayload: eventPayload(params.slug),
           eventTypeFor: () => CanonicalEventType.CONTENT_RETIRED,
         }),
       ],
