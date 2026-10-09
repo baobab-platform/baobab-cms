@@ -3,6 +3,8 @@ import * as migration_20260912_172242 from './20260912_172242.js';
 import * as migration_20261008_210243_corporate_content from './20261008_210243_corporate_content.js';
 import * as migration_20261009_055853_site_configurations from './20261009_055853_site_configurations.js';
 import * as migration_20261009_060938_tenant_control_plane_id from './20261009_060938_tenant_control_plane_id.js';
+import * as migration_20261009_073426_drop_singleton_fields from './20261009_073426_drop_singleton_fields.js';
+import * as migration_20261009_073430_add_estate_shaped_fields from './20261009_073430_add_estate_shaped_fields.js';
 
 export const migrations = [
   {
@@ -28,6 +30,16 @@ export const migrations = [
   {
     up: migration_20261009_060938_tenant_control_plane_id.up,
     down: migration_20261009_060938_tenant_control_plane_id.down,
-    name: '20261009_060938_tenant_control_plane_id'
+    name: '20261009_060938_tenant_control_plane_id',
+  },
+  {
+    up: migration_20261009_073426_drop_singleton_fields.up,
+    down: migration_20261009_073426_drop_singleton_fields.down,
+    name: '20261009_073426_drop_singleton_fields',
+  },
+  {
+    up: migration_20261009_073430_add_estate_shaped_fields.up,
+    down: migration_20261009_073430_add_estate_shaped_fields.down,
+    name: '20261009_073430_add_estate_shaped_fields'
   },
 ];

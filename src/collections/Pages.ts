@@ -1,4 +1,5 @@
 import type { CollectionConfig, TextFieldSingleValidation } from 'payload';
+import { validateLinkTarget } from './SiteConfigurations.js';
 import { tenantOwnedField, contentScopeField, sameTenantRelationshipField } from '../baobab/tenancy/fields.js';
 import { tenantScopedAccess } from '../baobab/tenancy/access.js';
 import { canonicalIdField } from '../baobab/identity/field.js';
@@ -170,6 +171,20 @@ const Pages: CollectionConfig = {
       name: 'content',
       type: 'richText',
     },
+    // Home page fields the estate reads (contentKey "home"). Optional; absent fields fall back to estate defaults.
+    { name: 'eyebrow', type: 'text', admin: { condition: (data) => data?.contentKey === 'home' } },
+    { name: 'headline', type: 'text', admin: { condition: (data) => data?.contentKey === 'home' } },
+    { name: 'introduction', type: 'textarea', admin: { condition: (data) => data?.contentKey === 'home' } },
+    { name: 'institutionalStatement', type: 'textarea', admin: { condition: (data) => data?.contentKey === 'home' } },
+    ...(['primaryCta', 'secondaryCta'] as const).map((name) => ({
+      name,
+      type: 'group' as const,
+      admin: { condition: (data: Record<string, unknown>) => data?.contentKey === 'home' },
+      fields: [
+        { name: 'label', type: 'text' as const },
+        { name: 'href', type: 'text' as const, validate: (v: string | null | undefined) => (v ? validateLinkTarget(v) : true) },
+      ],
+    })),
   ],
 };
 

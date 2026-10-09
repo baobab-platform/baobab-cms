@@ -216,7 +216,7 @@ describe('Payload content source', () => {
         organisation: { id: 'o', canonicalLegalEntityId: 'NABHOLD' },
         digitalEstate: { id: 'd', canonicalDigitalEstateId: 'DE-1' },
         market: { id: 'm', canonicalMarketId: 'MK-1' },
-        navigation: [{ item: { label: 'About', href: '/about' } }],
+        navigationItems: [{ id: 'x', label: 'About', href: '/about' }],
       },
     ]);
     const [record] = await createPayloadContentSource(payload).loadCandidates(TENANT, 'navigation');
@@ -224,7 +224,7 @@ describe('Payload content source', () => {
       id: 'SC-1', tenantId: TENANT, contentKey: 'navigation', legalEntityId: 'NABHOLD',
       digitalEstateId: 'DE-1', marketId: 'MK-1', locale: 'en-ZA', publicationState: 'PUBLISHED',
     });
-    expect(record.data.items).toHaveLength(1);
+    expect(record.data.navigationItems).toEqual([{ label: 'About', href: '/about' }]);
     expect(JSON.stringify(calls[1].where)).toContain('local-1');
     expect(JSON.stringify(calls[1].where)).toContain('navigation');
   });
@@ -240,6 +240,15 @@ describe('Payload content source', () => {
       (await createPayloadContentSource(fake([{ id: 't' }], [{ ...row, contentScope }]).payload).loadCandidates(TENANT, 'footer'))[0];
     expect(await load('TENANT')).toMatchObject({ legalEntityId: undefined, digitalEstateId: undefined, marketId: undefined, locale: 'en-ZA' });
     expect(await load('DIGITAL_ESTATE')).toMatchObject({ legalEntityId: 'NABHOLD', digitalEstateId: 'DE-1', marketId: undefined });
+  });
+
+  it('omits null seo values so the estate schema accepts the data', async () => {
+    const { payload } = fake([{ id: 't' }], [
+      { id: 'r', canonicalEntityId: 'SC-3', publicationState: 'PUBLISHED', contentScope: 'TENANT', seo: { title: null, description: 'd', openGraphImage: null, robots: { index: true, follow: null } }, siteName: 'N' },
+    ]);
+    const [record] = await createPayloadContentSource(payload).loadCandidates(TENANT, 'site-settings');
+    expect(record.data.seo).toEqual({ description: 'd', robots: { index: true } });
+    expect(record.data.siteName).toBe('N');
   });
 
   it('returns nothing for an unknown key, an unprojected tenant, or an ambiguous tenant mapping', async () => {

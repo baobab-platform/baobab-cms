@@ -1,4 +1,4 @@
-import type { Field, TextFieldSingleValidation } from 'payload';
+import type { TextFieldSingleValidation } from 'payload';
 import { corporateCollection, validateHttpUrl } from './corporate/shared.js';
 
 /**
@@ -32,16 +32,6 @@ export const validateLinkTarget = (value: string | null | undefined): true | str
   if (value.startsWith('/') && !value.startsWith('//')) return true;
   return validateHttpUrl(value);
 };
-
-const link = (name: string, label: string): Field => ({
-  name,
-  type: 'group',
-  label,
-  fields: [
-    { name: 'label', type: 'text', required: true },
-    { name: 'href', type: 'text', required: true, validate: validateLinkTarget },
-  ],
-});
 
 const isKind = (kind: SiteConfigurationKind) => (data: { kind?: string }) => data?.kind === kind;
 
@@ -90,52 +80,42 @@ const SiteConfigurations = corporateCollection({
       options: SITE_CONFIGURATION_KINDS.map((value) => ({ label: value, value })),
       validate: singletonValidator as never,
     },
+    // Field names follow the estate's content contract (nabhold src/integrations/payload/dto/page.dto.ts).
     {
-      name: 'navigation',
+      name: 'navigationItems',
       type: 'array',
-      admin: { condition: isKind('navigation'), description: 'Primary navigation, at most two levels.' },
       maxRows: 12,
+      admin: { condition: isKind('navigation'), description: 'Primary navigation.' },
       fields: [
-        link('item', 'Item'),
-        { name: 'children', type: 'array', maxRows: 12, fields: [link('item', 'Child item')] },
+        { name: 'label', type: 'text', required: true },
+        { name: 'href', type: 'text', required: true, validate: validateLinkTarget },
       ],
     },
     {
-      name: 'footer',
-      type: 'group',
+      name: 'statement',
+      type: 'textarea',
+      admin: { condition: isKind('footer'), description: 'Footer statement. No registration numbers unless the legal team approves.' },
+    },
+    { name: 'tagline', type: 'text', admin: { condition: isKind('footer') } },
+    {
+      name: 'footerLinks',
+      type: 'array',
+      maxRows: 12,
       admin: { condition: isKind('footer') },
       fields: [
-        {
-          name: 'columns',
-          type: 'array',
-          maxRows: 6,
-          fields: [
-            { name: 'heading', type: 'text', required: true },
-            { name: 'links', type: 'array', maxRows: 12, fields: [link('item', 'Link')] },
-          ],
-        },
-        { name: 'legalLine', type: 'textarea', admin: { description: 'Copyright or similar line. Do not enter registration numbers here unless the legal team approves.' } },
+        { name: 'label', type: 'text', required: true },
+        { name: 'href', type: 'text', required: true, validate: validateLinkTarget },
       ],
     },
+    { name: 'siteName', type: 'text', admin: { condition: isKind('site-settings') } },
     {
-      name: 'settings',
-      type: 'group',
-      admin: { condition: isKind('site-settings') },
+      name: 'body',
+      type: 'array',
+      maxRows: 40,
+      admin: { condition: isKind('group-profile'), description: 'Group profile text as headings and paragraphs.' },
       fields: [
-        { name: 'siteName', type: 'text', required: true },
-        { name: 'tagline', type: 'text' },
-        { name: 'logo', type: 'relationship', relationTo: 'media' },
-        { name: 'social', type: 'array', maxRows: 10, fields: [{ name: 'network', type: 'text', required: true }, { name: 'url', type: 'text', required: true, validate: validateHttpUrl }] },
-      ],
-    },
-    {
-      name: 'profile',
-      type: 'group',
-      admin: { condition: isKind('group-profile') },
-      fields: [
-        { name: 'headline', type: 'text', required: true },
-        { name: 'summary', type: 'textarea', required: true },
-        { name: 'sections', type: 'array', maxRows: 20, fields: [{ name: 'heading', type: 'text', required: true }, { name: 'body', type: 'textarea', required: true }] },
+        { name: 'type', type: 'select', required: true, defaultValue: 'paragraph', options: ['heading', 'paragraph'] },
+        { name: 'text', type: 'textarea', required: true },
       ],
     },
   ],

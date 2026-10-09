@@ -74,18 +74,61 @@ function declares(scope: unknown, minimum: ContentScope): boolean {
   return scopeSpecificity(s) >= scopeSpecificity(minimum);
 }
 
+const strip = (rows: unknown, keys: string[]): Array<Record<string, unknown>> =>
+  Array.isArray(rows)
+    ? rows.map((row) => Object.fromEntries(keys.map((k) => [k, (row as Record<string, unknown>)[k]])))
+    : [];
+const cta = (value: unknown): { label: string; href: string } | undefined => {
+  const v = value as { label?: unknown; href?: unknown } | null | undefined;
+  return v && typeof v.label === 'string' && typeof v.href === 'string' ? { label: v.label, href: v.href } : undefined;
+};
+
+/** Drops null and empty values so the estate's optional-string schema accepts the object; returns undefined if nothing remains. */
+function cleanObject(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (k === 'id' || v === null || v === undefined || v === '') continue;
+    if (typeof v === 'object' && !Array.isArray(v)) {
+      const nested = cleanObject(v);
+      if (nested) out[k] = nested;
+    } else out[k] = v;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Field names are the estate's content contract (nabhold page.dto.ts); optional values are omitted, not nulled. */
 function dataFor(source: Source, doc: Record<string, unknown>): Record<string, unknown> {
-  if (source.collection === 'pages') return { title: doc.title, slug: doc.slug, content: doc.content ?? null };
+  const out: Record<string, unknown> = { title: doc.title };
+  const put = (key: string, value: unknown) => {
+    if (value !== undefined && value !== null && value !== '') out[key] = value;
+  };
+  if (source.collection === 'pages') {
+    put('slug', doc.slug);
+    put('content', doc.content);
+    for (const key of ['eyebrow', 'headline', 'introduction', 'institutionalStatement']) put(key, doc[key]);
+    put('primaryCta', cta(doc.primaryCta));
+    put('secondaryCta', cta(doc.secondaryCta));
+    put('seo', cleanObject(doc.seo));
+    return out;
+  }
   switch (source.kind) {
     case 'navigation':
-      return { title: doc.title, items: doc.navigation ?? [] };
+      out.navigationItems = strip(doc.navigationItems, ['label', 'href']);
+      break;
     case 'footer':
-      return { title: doc.title, ...((doc.footer as object) ?? {}) };
+      put('statement', doc.statement);
+      put('tagline', doc.tagline);
+      out.footerLinks = strip(doc.footerLinks, ['label', 'href']);
+      break;
     case 'site-settings':
-      return { title: doc.title, ...((doc.settings as object) ?? {}) };
+      put('siteName', doc.siteName);
+      break;
     default:
-      return { title: doc.title, ...((doc.profile as object) ?? {}) };
+      out.body = strip(doc.body, ['type', 'text']);
   }
+  put('seo', cleanObject(doc.seo));
+  return out;
 }
 
 export function createPayloadContentSource(payload: PayloadFind): ContentResolveDependencies {
