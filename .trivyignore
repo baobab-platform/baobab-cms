@@ -1,0 +1,16 @@
+# CVE-2026-93687 (braces 3.0.3): genuine, currently unfixed upstream -- no patched
+# braces release exists (status "affected", empty fixed version). Recorded as an
+# exception rather than treated as a false positive.
+#
+# Reachability, verified against the installed tree (npm explain braces):
+#   @payloadcms/storage-s3 -> @payloadcms/plugin-cloud-storage -> find-node-modules
+#   -> findup-sync -> micromatch -> braces
+# find-node-modules is declared in plugin-cloud-storage's package.json but is never
+# imported anywhere in its published dist, so the chain is installed, not executed.
+# The other path (sass -> chokidar 3.x -> braces) is removed by the "sass" ->
+# "chokidar" override in package.json, which is why this is the only remaining entry.
+#
+# Time-boxed: the exp: date makes Trivy report this again after it. Before
+# extending, re-run the scan un-ignored and check whether braces, micromatch or the
+# Payload storage plugin now ship a fix.
+CVE-2026-93687 exp:2026-12-31
