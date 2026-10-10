@@ -85,3 +85,11 @@ are merged. This section replaces the earlier "if accepted" framing; the section
 - Legal-actor mandates (LA-04) and the founding sponsorship and 12-month deferral runtime (PEO-02) are not implemented in CP.
   Shared defines the sponsorship and deferral records; CP code for them was not found.
 - Decision recorded earlier as requested is now settled by the accepted ADR: the nullable `controlPlaneOrganisationId` stays.
+
+
+## Status update, 10 October 2026
+
+- **Grace is now 24 calendar months, not 12.** ADR-BCP-026 was amended (`baobab-cp#304`), Shared `shared#263` and the Control Plane pin `#305` followed. Any earlier statement here or in the CMS records that implied 12 months is superseded. The runtime is still not implemented.
+- **LA-04A to LA-04D are merged** (mandate proposal, decision, activation, revocation): staging only, hard-disabled in production, no real mandate exists.
+- **LA-05A, LA-05G, LA-05H are merged** (legal-actor assessment and staging assessor identities). They concern Trade, ERP, Payments and Trade Docs, not the content route.
+- **Context validation:** the handler on `main` returns `organisation_id` for a RUNTIME context and states no default LegalEntity requirement, which fits the optional `organisation_id` the CMS now reads. Context issuance for a tenant with no default LegalEntity is not verified.

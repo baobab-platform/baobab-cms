@@ -131,25 +131,34 @@
     },
     {
       "id": "cp-v1-context-defaultless",
-      "title": "v1 platform-context consumers still require a default LegalEntity and fail closed for defaultless v2 tenants",
+      "title": "Whether the Control Plane can issue and validate a RUNTIME context for a tenant with no default LegalEntity",
       "status": "OPEN",
-      "asOf": "2026-10-09",
-      "evidence": "LA-03 runbook, open downstream boundaries (LA-05)",
-      "nextStep": "LA-05 migrates context validation; until then a defaultless tenant would not resolve through POST /v1/platform-context/validate."
+      "asOf": "2026-10-10",
+      "evidence": "The validate handler on baobab-cp main returns organisation_id and market_id for a RUNTIME context and states no default legal entity requirement. Context issuance for such a tenant was not checked",
+      "nextStep": "Confirm with the Control Plane before relying on it; LA-05 so far covers legal-actor assessment, not context issuance."
     },
     {
       "id": "cp-la04-mandates",
       "title": "Legal-actor mandates (Nabhold acting for ZuriBeans and Equator & Estate Co.)",
-      "status": "OPEN",
-      "asOf": "2026-10-09",
-      "evidence": "LA-03 runbook: LA-04 not implemented"
+      "status": "PARTIAL",
+      "asOf": "2026-10-10",
+      "evidence": "LA-04A to LA-04D merged (baobab-cp#295 to #298): proposal, decision, activation, revocation. Staging only, hard-disabled in production; no mandate record exists",
+      "nextStep": "Independent security approval, staging acceptance and consumer enforcement; out of scope for the Nabhold-only CMS track."
     },
     {
       "id": "cp-peo02-grace",
-      "title": "Founding sponsorship and 12-month documentary deferral runtime",
+      "title": "Founding sponsorship and 24-month documentary deferral runtime",
       "status": "OPEN",
-      "asOf": "2026-10-09",
-      "evidence": "Shared organisation/v2 founding-admission.schema.json exists; no Control Plane migration or code found for it; 3/6/9-month reviews and expiry consequences exist only as ADR-BCP-026 text"
+      "asOf": "2026-10-10",
+      "evidence": "ADR-BCP-026 amended to 24 calendar months (baobab-cp#304); Shared contract updated (shared#263); CP pin refreshed (baobab-cp#305). Runtime (expiry, 6/12/18/24-month reviews, scoped restrictions) not implemented",
+      "nextStep": "Control Plane PEO-02 runtime."
+    },
+    {
+      "id": "cp-la05",
+      "title": "LA-05 legal-actor assessment and consumer enforcement",
+      "status": "PARTIAL",
+      "asOf": "2026-10-10",
+      "evidence": "LA-05A, LA-05G and LA-05H merged (baobab-cp#299, #302; shared#261, #262): private assess read, four staging-only assessor identities with no authority. Consumer enforcement (LA-05B to F) not accepted. Not on the Nabhold-only content path"
     }
   ]
 }
