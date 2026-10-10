@@ -19,3 +19,8 @@ artifacts:
     runtime: true
 security:
   sast_provider: fallback
+exceptions:
+  dependency-audit:
+    reason: "braces <=3.0.3 stack-exhaustion DoS (GHSA-vfj7-8cjw-p6xm) has no upstream fix; reached only via @payloadcms/storage-s3 > find-node-modules (dev-time path lookup, no untrusted glob input). Remove when Payload or braces ships a fix"
+    expires: "2026-11-09"
+    approved_by: "@bjnabs"
