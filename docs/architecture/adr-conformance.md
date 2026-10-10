@@ -31,7 +31,7 @@ for this change set, with a documented extension point.
 | 22 | Caching cannot leak content across tenants/estates | 🟡 | `resolveContent()`'s deterministic, context-keyed resolution is the foundation a cache key would be built from; no cache layer is implemented yet (ADR explicitly discourages introducing infrastructure — Redis/CDN — without a measured need) |
 | 23 | Reconciliation tooling exists | ✅ | `src/baobab/reconciliation/checks.ts` + `scripts/reconciliation/run.ts`, run against a real DB in this session |
 | 24 | Operational health and event backlog observable | ✅ | `/api/health/live`, `/api/health/ready` (verified via a real `next dev` server in this session, see implementation report) |
-| 25 | CI validates organisation contracts | 🟡 | `.github/workflows/ci.yml` validates lint/typecheck/tests/build/migration-apply; there is no `nabhold/shared` contract repository yet to validate against |
+| 25 | CI validates organisation contracts | 🟡 | `.github/workflows/ci.yml` validates lint/typecheck/tests/build/migration-apply; there is no `baobab-platform/shared` contract repository yet to validate against |
 | 26 | Existing and new tests pass | ✅ | 80 unit tests (`npm test`), `tsc --noEmit`, `eslint .`, `next build` all verified clean in this session |
 | 27 | No hard-coded tenant-specific branches | ✅ | Grep-verified: no `if (tenant ===` / `if (market ===` pattern anywhere in `src/` |
 | 28 | No unnecessary platform capability absorbed into Payload | ✅ | No search engine, DAM, workflow engine, or translation engine embedded; see §10 of the architecture overview |

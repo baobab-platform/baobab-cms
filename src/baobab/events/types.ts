@@ -3,7 +3,7 @@
  * hook names (`afterChange`, collection slugs) are internal implementation
  * detail and SHALL NOT leak into this vocabulary (ADR-0018 §4, §13-14).
  *
- * This is the local implementation of what `nabhold/shared` would
+ * This is the local implementation of what `baobab-platform/shared` would
  * otherwise govern centrally; see `docs/architecture/events.md` for the
  * documented swap-in point once that repository exists.
  */

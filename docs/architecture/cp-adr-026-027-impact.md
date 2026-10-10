@@ -4,6 +4,10 @@ Reviewed 2026-10-09 against baobab-cp `main` (ADR-BCP-026, merged, **Proposed**)
 **Proposed**), baobab-cp PR #289 and Shared PR #255 (NBO-01 staff-assisted admission, open). Nothing below treats a Proposed
 decision as accepted; it records where our code would need to change if they are accepted, and what we do meanwhile.
 
+> **Status as of 2026-10-10:** both ADRs are Accepted and the NBO-01 pull requests named above are merged. The text up to
+> the final section is the 2026-10-09 review record and is kept as written; the final section and
+> `docs/operations/nabhold-upstream-dependencies.json` carry the current state.
+
 ## What the two ADRs say that touches the CMS
 
 - **027:** a Tenant's identity is its PRIMARY Organisation (a Control Plane identifier). `legal_entity_id` becomes an optional,

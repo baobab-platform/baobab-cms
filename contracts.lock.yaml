@@ -6,14 +6,23 @@ schema: baobab-contract-consumer-lock
 version: "1.0"
 source:
   repository: baobab-platform/shared
-  commit: b63ce52a20d1b6f8acc41d085913c6025d6c859c
+  commit: 8f3f847dd6c1ecfe32deea808c298e0f910cbc59
 contracts:
-  # content.entry.resolve, declared as planned in .baobab/capability-provider.yaml.
+  # content.entry.resolve, declared PARTIAL in .baobab/capability-provider.yaml.
   - contracts/content/v1/capabilities.yaml
-  # Its contract 1 request and response. Not implemented yet (plan §51 item 16);
-  # pinned now so Shared changes to them show in the drift report first.
+  # Its contract 1 request and response, implemented by the POST /v1/content/resolve
+  # route (src/baobab/content-resolution).
   - contracts/content/v1/content-resolve-request.schema.json
   - contracts/content/v1/content-resolve-response.schema.json
+  # The HTTP contract of that route: path, context_id query parameter, scopes
+  # (content:entry:resolve, content:entry:preview) and error responses.
+  - contracts/content/v1/openapi.yaml
+  # Consumed by the route's Control Plane context validation call
+  # (POST /platform-context/validate).
+  - contracts/control-plane/v1/openapi.yaml
+  # The workload access-token claims the route's caller authenticator requires
+  # (iss, sub, aud, exp, iat, jti, scope, actor_type).
+  - contracts/control-plane/v1/access-token-claims.schema.json
 policy:
   updates: explicit_pull_request
   compatibility: validate_before_merge

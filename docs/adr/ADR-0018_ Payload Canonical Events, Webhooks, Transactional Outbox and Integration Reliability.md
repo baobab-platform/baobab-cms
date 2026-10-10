@@ -4,13 +4,13 @@
 **Date:** 2026-09-04  
 **Decision Class:** Platform Architecture / Integration / Eventing  
 **Scope:** Baobab Content Engine  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent ADRs:**  
 - `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`
 - `ADR-0013-payload-canonical-content-identity-and-external-mapping.md`
 - `ADR-0015-payload-medusa-product-content-composition-and-authority.md`
 
-**Related Systems:** Baobab Control Plane, MedusaJS Trade Engine, iDempiere ERP Engine, Digital Estates, `nabhold/shared`  
+**Related Systems:** Baobab Control Plane, MedusaJS Trade Engine, iDempiere ERP Engine, Digital Estates, `baobab-platform/shared`  
 **Supersedes:** None  
 **Architectural Style:** Event-driven, contract-first, at-least-once delivery, idempotent consumers, outbox-backed publication
 
@@ -131,7 +131,7 @@ A change in Payload hook implementation SHALL not require downstream consumers t
 
 # 5. Event Contract Authority
 
-Organisation-wide event schemas SHALL be governed through `nabhold/shared`.
+Organisation-wide event schemas SHALL be governed through `baobab-platform/shared`.
 
 Payload SHALL implement those schemas.
 
@@ -236,7 +236,7 @@ trace_id?
 payload
 ```
 
-Exact schema belongs in `nabhold/shared`.
+Exact schema belongs in `baobab-platform/shared`.
 
 ---
 
@@ -969,7 +969,7 @@ Malformed events SHALL not silently propagate.
 
 # 82. Contract Compatibility Tests
 
-CI SHALL verify Payload event producers against canonical schemas in `nabhold/shared`.
+CI SHALL verify Payload event producers against canonical schemas in `baobab-platform/shared`.
 
 ---
 
@@ -1291,7 +1291,7 @@ These costs are accepted.
 
 1. Canonical events are platform contracts.
 2. Payload hooks are implementation mechanisms.
-3. Cross-platform event schemas belong in `nabhold/shared`.
+3. Cross-platform event schemas belong in `baobab-platform/shared`.
 4. Canonical events use stable canonical identity.
 5. Tenant context is explicit.
 6. Content mutation and durable event intent are transactionally coupled where possible.

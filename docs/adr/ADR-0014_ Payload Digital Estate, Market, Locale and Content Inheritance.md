@@ -4,14 +4,14 @@
 **Date:** 2026-09-04  
 **Decision Class:** Platform Architecture / Content Management / Content Resolution  
 **Scope:** Baobab Content Engine  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent ADRs:**  
 - `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`
 - `ADR-0012-payload-multi-tenancy-and-content-isolation-architecture.md`
 - `ADR-0013-payload-canonical-content-identity-and-external-mapping.md`
 
 **Supersedes:** None  
-**Related Contracts:** Baobab Canonical Mapping Model; Baobab Control Plane Context and Mapping Contracts; `nabhold/shared` content-context schemas  
+**Related Contracts:** Baobab Canonical Mapping Model; Baobab Control Plane Context and Mapping Contracts; `baobab-platform/shared` content-context schemas  
 **Architectural Style:** Context-aware, deterministic, inheritance-driven content resolution
 
 ---

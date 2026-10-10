@@ -17,7 +17,7 @@
 
 ## Purpose
 
-Bring the **Zuribeans** B2B digital estate (`nabhold/zuribeans`) onto the Baobab
+Bring the **Zuribeans** B2B digital estate (`baobab-platform/zuribeans`) onto the Baobab
 Content Engine while the **Control Plane is not yet ready** to issue
 authoritative tenant / legal-entity / digital-estate / market records.
 
@@ -42,14 +42,14 @@ not the long-term source of truth.
 | Service identity | Interim Payload API key + `serviceIdentity` user | IAM workload pattern exists (Gate IAM-4); CMS OIDC still deferred (Gate IAM-5 §2b) |
 | No hard-coded branches | All behaviour is data-driven by `code` / context | ADR-0011 — no `if (tenant === 'zuribeans')` |
 
-Related estate repo: `nabhold/zuribeans`  
-Related IAM: `nabhold/baobab-iam` (Gate IAM-6 Zuribeans B2B; Gate IAM-4 workload identity)
+Related estate repo: `baobab-platform/zuribeans`  
+Related IAM: `baobab-platform/baobab-iam` (Gate IAM-6 Zuribeans B2B; Gate IAM-4 workload identity)
 
 ---
 
 ## Prerequisites
 
-1. `nabhold/baobab-cms` checked out, dependencies installed (`npm ci`).
+1. `baobab-platform/baobab-cms` checked out, dependencies installed (`npm ci`).
 2. Postgres reachable (`DATABASE_URL`); migrations applied (`npm run db:migrate`).
 3. `PAYLOAD_SECRET` set (see `.env.example`).
 4. At least one existing **platform administrator** is *not* required for the
@@ -200,7 +200,7 @@ across that migration (ADR-0013).
 
 ## File map
 
-| Path in `nabhold/baobab-cms` | Role |
+| Path in `baobab-platform/baobab-cms` | Role |
 |------------------------------|------|
 | `scripts/onboarding/zuribeans.ts` | Idempotent seed (this runbook’s automation) |
 | `docs/operations/onboard-zuribeans.md` | This document |

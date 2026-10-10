@@ -9,7 +9,7 @@ Engine per `docs/adr/ADR-0011` through `ADR-0020`.
   this codebase's layering, request flow, and modules.
 - `docs/architecture/adr-conformance.md` — acceptance-criteria matrix.
 - `docs/architecture/gap-analysis.md` — Phase 0 inventory this change set
-  was built from.
+  was built from (a historical snapshot, not the current state).
 - `docs/architecture/implementation-report.md` — what's implemented,
   partial, deferred, and why; what was actually verified vs. asserted.
 - Topic guides: `docs/tenancy`, `docs/identity`, `docs/authorization`,
@@ -17,10 +17,17 @@ Engine per `docs/adr/ADR-0011` through `ADR-0020`.
   `docs/media`, `docs/events`, `docs/migrations`, `docs/collections`.
 - `docs/operations/runbooks.md` — deploy, rollback, outbox, reconciliation,
   backup/restore.
+- Nabhold corporate estate (`content.entry.resolve` provider): route and
+  configuration in `docs/content-resolution/provider-route.md`, onboarding in
+  `docs/operations/onboard-nabhold.md`, content model in
+  `docs/collections/corporate-singletons.md`, upstream status in
+  `docs/operations/nabhold-upstream-dependencies.json`, and the decision record
+  `docs/adr/ADR-0021_*` (Proposed). Nothing here activates the estate in any
+  environment.
 
 ## Local development
 
-Prereqs: Node 20+, Docker (for Postgres/RabbitMQ/MinIO), or point
+Prereqs: Node 22 (the version CI and the container image use), Docker (for Postgres/RabbitMQ/MinIO), or point
 `DATABASE_URL`/`RABBITMQ_URL`/`S3_*` at your own instances.
 
 ```bash

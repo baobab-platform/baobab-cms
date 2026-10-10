@@ -39,11 +39,13 @@ blocked until IAM federation is proven.
   and never auto-repaired or overwritten.
 - No registration number, tax reference, VAT number or address is written to the CMS.
 
-## Legal-name discrepancy
+## Legal name
 
-Shared's first-party registry currently names the entity "Nabhold Group Africa". The CIPC record reads
-"NABHOLD GROUP AFRICA (Pty) Ltd". Shared PR #252 (draft) carries the CIPC facts. The CMS uses the registry name and does
-not decide which is canonical; it is not a legal registry. Reconcile after #252 is accepted.
+Shared's first-party registry holds the CIPC legal name, "NABHOLD GROUP AFRICA (Pty) Ltd", with the registration
+facts as a claim (shared#252, merged; `incorporation_claim: REGISTERED_EVIDENCED`, which the Control Plane must still
+verify independently). The CMS uses the display name "Nabhold Group Africa" for tenant and organisation labels and
+public copy, and stores no legal facts: it is not a legal registry. The tenant's `metadata.legalIdentity.verification.state`
+is `CLAIM_RECORDED_VERIFICATION_PENDING` until the Control Plane records a verification.
 
 ## Rollback
 

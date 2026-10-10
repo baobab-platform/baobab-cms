@@ -32,10 +32,9 @@
     {
       "id": "cp-main-container-scan",
       "title": "Control Plane main fails the container vulnerability scan",
-      "status": "OPEN",
-      "asOf": "2026-10-09",
-      "evidence": "foundation run 37899817711 on 4eb74511",
-      "nextStep": "Bump the affected Go toolchain or base image in baobab-cp."
+      "status": "DONE",
+      "asOf": "2026-10-10",
+      "evidence": "baobab-cp Foundation Repository Gates succeeded on main at c5fe4ad (2026-10-10), after #306 and #307 merged"
     },
     {
       "id": "legal-claim-recorded",
@@ -43,6 +42,20 @@
       "status": "DONE",
       "asOf": "2026-10-09",
       "evidence": "baobab-platform/shared#252 merged"
+    },
+    {
+      "id": "shared-nabhold-workload",
+      "title": "Nabhold workload registered in Shared's workload registry",
+      "status": "DONE",
+      "asOf": "2026-10-10",
+      "evidence": "baobab-platform/shared#265 merged (c45ae13): nabhold-backend, PROVISIONED, audiences baobab-control-plane and baobab-cms, scopes context:resolve and content:entry:resolve. A registry ceiling, not an issued credential"
+    },
+    {
+      "id": "shared-cms-context-validator",
+      "title": "baobab-cms-workload allocated context:validate for the CMS audience",
+      "status": "DONE",
+      "asOf": "2026-10-10",
+      "evidence": "baobab-platform/shared#265 merged (c45ae13): context:validate with validates_audiences [baobab-cms]. Registry only; the CMS still uses the interim CMS_CONTEXT_VALIDATOR_TOKEN until IAM issues the credential"
     },
     {
       "id": "legal-verification-case",
@@ -76,7 +89,9 @@
       "id": "iam-federation",
       "title": "IAM workforce federation and workload client proven end to end",
       "status": "OPEN",
-      "asOf": "2026-10-09"
+      "asOf": "2026-10-10",
+      "evidence": "baobab-iam#106 merged (1e38060): current-Control-Plane dispatch gates for native and workload operations, repository construction only. No workload credential has been issued for baobab-cms-workload or nabhold-backend, and no end-to-end federation is proven",
+      "nextStep": "Control Plane runtime projection for native and workload reference semantics, executable wiring, then issue and prove the registered workload clients."
     },
     {
       "id": "shared-organisation-dimension",

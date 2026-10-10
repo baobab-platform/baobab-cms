@@ -1,6 +1,6 @@
 # Baobab Content Engine — Architecture Overview
 
-This document explains how `nabhold/baobab-cms` realises ADR-0011 through
+This document explains how `baobab-platform/baobab-cms` realises ADR-0011 through
 ADR-0020. It is implementation documentation, not a restatement of the
 ADRs — read the ADRs in `docs/adr/` for the normative decisions; this
 explains *how* the code satisfies them.

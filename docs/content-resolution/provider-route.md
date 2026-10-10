@@ -23,8 +23,8 @@ Control Plane or identity provider.
 | Variable | Meaning |
 |---|---|
 | `CMS_TOKEN_ISSUER`, `CMS_TOKEN_AUDIENCE`, `CMS_TOKEN_JWKS_URL` | How callers' tokens are verified |
-| `CONTROL_PLANE_URL` | Control Plane base URL |
-| `CMS_CONTEXT_VALIDATOR_TOKEN` | Interim validator token holding `context:validate`. Replace with the workload token client when IAM provides it. Never log. |
+| `CONTROL_PLANE_URL` | Control Plane origin only, without a path or `/v1` (the validator appends `/v1/platform-context/validate`) |
+| `CMS_CONTEXT_VALIDATOR_TOKEN` | Interim validator token holding `context:validate`. Shared's workload registry now allocates `context:validate` (with `validates_audiences: [baobab-cms]`) to `baobab-cms-workload` (shared#265, `c45ae13`), but that is a registry ceiling only: baobab-iam does not yet issue the credential. Replace this with a workload-token client once IAM does. Never log. |
 
 ## Data
 

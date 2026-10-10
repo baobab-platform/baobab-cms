@@ -4,7 +4,7 @@
 **Date:** 2026-09-02  
 **Decision Class:** Platform Architecture / Content Management  
 **Scope:** Baobab Platform  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent:** None — Parent ADR for the Baobab Content Engine  
 **Preceded by:** `ADR-0010`  
 **Related Engines:** Baobab Control Plane, Baobab Trade Engine, Baobab ERP Engine  
@@ -97,7 +97,7 @@ The Content Engine SHALL be implemented and operated as an independently deploya
 The canonical repository SHALL be:
 
 ```text
-nabhold/baobab-cms
+baobab-platform/baobab-cms
 ```
 
 Payload CMS SHALL remain recognisable as an upstream product and SHALL NOT be transformed into a general-purpose Baobab application framework.
@@ -177,7 +177,7 @@ It SHALL provide content capabilities.
 For example:
 
 ```text
-nabhold/baobab-cms
+baobab-platform/baobab-cms
         │
         ├── Nabhold content
         ├── Zuribeans content
@@ -1009,7 +1009,7 @@ Dependency upgrades SHALL NOT be treated as routine package bumps where they alt
 
 # 33. Repository Boundary
 
-`nabhold/baobab-cms` SHALL own:
+`baobab-platform/baobab-cms` SHALL own:
 
 - Payload configuration;
 - Baobab content models;
@@ -1021,13 +1021,13 @@ Dependency upgrades SHALL NOT be treated as routine package bumps where they alt
 - CMS deployment artefacts;
 - engine documentation.
 
-It SHALL NOT own canonical organisation-wide definitions that properly belong in `nabhold/shared`.
+It SHALL NOT own canonical organisation-wide definitions that properly belong in `baobab-platform/shared`.
 
 ---
 
 # 34. Shared Contract Boundary
 
-`nabhold/shared` remains authoritative for portable organisation-wide contracts.
+`baobab-platform/shared` remains authoritative for portable organisation-wide contracts.
 
 Where appropriate, it SHALL define:
 
@@ -1178,7 +1178,7 @@ Canonical correlation identifiers SHALL propagate across engine boundaries where
 
 # 41. Development Environment
 
-The repository SHALL consume an appropriate versioned `nabhold/baobab-dev` development profile.
+The repository SHALL consume an appropriate versioned `baobab-platform/baobab-dev` development profile.
 
 The development environment SHALL remain reproducible through GitHub Codespaces and Docker DevContainers.
 
@@ -1476,12 +1476,12 @@ These costs are accepted because they preserve domain integrity and long-term re
 The following are normative.
 
 1. Payload CMS is the foundation of the Baobab Content Engine.
-2. `nabhold/baobab-cms` is independently deployable.
+2. `baobab-platform/baobab-cms` is independently deployable.
 3. Payload owns editorial content, not commerce transactions.
 4. Medusa owns commerce state.
 5. iDempiere owns ERP state.
 6. The Control Plane owns canonical platform lifecycle metadata.
-7. `nabhold/shared` owns portable organisation-wide contracts.
+7. `baobab-platform/shared` owns portable organisation-wide contracts.
 8. Engines do not share operational databases.
 9. Cross-engine SQL access is prohibited.
 10. Payload internal IDs are not canonical Baobab IDs.
@@ -1633,7 +1633,7 @@ The ERP Engine owns ERP truth.
 
 The Control Plane owns platform governance and canonical operating context.
 
-`nabhold/shared` owns portable organisational contracts.
+`baobab-platform/shared` owns portable organisational contracts.
 
 Digital estates compose those capabilities into experiences appropriate to their legal entities, brands, markets and customers.
 

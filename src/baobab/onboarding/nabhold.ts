@@ -29,7 +29,10 @@ import { Capability, EditorialRole } from '../authorization/roles.js';
 
 export const NABHOLD = {
   firstPartyId: 'NABHOLD',
-  /** Name currently in the Shared first-party registry. The CIPC-registered name differs; see the runbook. */
+  /**
+   * Display (trading) name used for CMS labels and public copy. Shared's first-party registry holds the
+   * CIPC legal name, "NABHOLD GROUP AFRICA (Pty) Ltd" (shared#252); the CMS stores no legal facts. See the runbook.
+   */
   registryName: 'Nabhold Group Africa',
   tenantCode: 'nabhold',
   organisationCode: 'nabhold',
@@ -244,8 +247,8 @@ export async function onboardNabhold(repo: ProjectionRepository, options: Onboar
           registryName: NABHOLD.registryName,
           jurisdiction: 'ZA',
           verification: {
-            state: 'REGISTRY_UPDATE_PENDING',
-            note: 'Registration facts are held by Shared and the Control Plane. The CMS deliberately stores none of them.',
+            state: 'CLAIM_RECORDED_VERIFICATION_PENDING',
+            note: 'The CIPC identity is recorded in the Shared registry as a claim (shared#252). The Control Plane has not verified it. The CMS deliberately stores none of the registration facts.',
           },
         },
       },

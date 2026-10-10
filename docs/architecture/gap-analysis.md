@@ -1,6 +1,10 @@
 # Baobab Content Engine — Phase 0 Gap Analysis
 
-This document is the Phase 0 inventory required before refactoring `nabhold/baobab-cms`
+> **Historical snapshot.** This is the Phase 0 inventory taken before the ADR-0011 to ADR-0020 refactoring. Its "state" tables
+> (Payload version, empty migrations directory, no storage, local-only auth) describe the repository at that point, not today.
+> Current state: `docs/architecture/implementation-report.md`, `docs/architecture/adr-conformance.md` and `contracts.lock.yaml`.
+
+This document is the Phase 0 inventory required before refactoring `baobab-platform/baobab-cms`
 against ADR-0011 through ADR-0020. It records what existed before this change set,
 maps it against ADR requirements, and defines the gap this implementation closes.
 

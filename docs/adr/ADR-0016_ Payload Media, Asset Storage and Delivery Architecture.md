@@ -4,7 +4,7 @@
 **Date:** 2026-09-04  
 **Decision Class:** Platform Architecture / Content Management / Media  
 **Scope:** Baobab Content Engine  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent ADRs:**  
 - `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`
 - `ADR-0012-payload-multi-tenancy-and-content-isolation-architecture.md`
@@ -1229,7 +1229,7 @@ Media change events MAY drive:
 
 # 106. Contract Versioning
 
-Media metadata contracts SHALL be versioned in `nabhold/shared` where they cross repository boundaries.
+Media metadata contracts SHALL be versioned in `baobab-platform/shared` where they cross repository boundaries.
 
 Provider-specific object-storage configuration SHALL not leak into organisation-wide content contracts unless required.
 
