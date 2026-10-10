@@ -4,7 +4,7 @@
 **Date:** 2026-09-04  
 **Decision Class:** Platform Architecture / Content Management / Schema Governance  
 **Scope:** Baobab Content Engine  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent ADRs:**  
 - `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`
 - `ADR-0012-payload-multi-tenancy-and-content-isolation-architecture.md`
@@ -13,7 +13,7 @@
 - `ADR-0017-payload-identity-authentication-authorisation-and-editorial-administration.md`
 - `ADR-0018-payload-canonical-events-webhooks-transactional-outbox-and-integration-reliability.md`
 
-**Related Systems:** Baobab Control Plane, `nabhold/shared`, digital estates, MedusaJS Trade Engine  
+**Related Systems:** Baobab Control Plane, `baobab-platform/shared`, digital estates, MedusaJS Trade Engine  
 **Supersedes:** None  
 **Architectural Style:** Contract-governed, backward-compatible, migration-first, tenant-neutral schema evolution
 
@@ -115,7 +115,7 @@ All production-significant schema changes SHALL be:
 Payload schema definitions SHALL belong to:
 
 ```text id="3ei2jo"
-nabhold/baobab-cms
+baobab-platform/baobab-cms
 ```
 
 The repository SHALL own:
@@ -137,7 +137,7 @@ The repository SHALL own:
 Cross-repository contracts SHALL belong to:
 
 ```text id="cmaqvj"
-nabhold/shared
+baobab-platform/shared
 ```
 
 Examples include:
@@ -1144,7 +1144,7 @@ Rejected because consumers and historical data may break.
 
 Rejected.
 
-Payload owns Content Engine implementation schema; cross-repository contracts belong in `nabhold/shared`.
+Payload owns Content Engine implementation schema; cross-repository contracts belong in `baobab-platform/shared`.
 
 ---
 
@@ -1201,7 +1201,7 @@ These costs are accepted.
 2. Persisted schema changes require migration strategy.
 3. Applied migrations are not casually rewritten.
 4. Tenant-specific schema forks are prohibited by default.
-5. Cross-repository contracts belong in `nabhold/shared`.
+5. Cross-repository contracts belong in `baobab-platform/shared`.
 6. Canonical platform concepts are not redefined by Payload schema.
 7. Canonical identity survives storage-schema changes where semantics remain unchanged.
 8. Migrations preserve tenant ownership.

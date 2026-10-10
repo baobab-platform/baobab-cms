@@ -163,11 +163,15 @@ be run, was:
 - **Field-level malware/content scanning integration** for media beyond
   the SVG heuristic — ADR-0016 §40 explicitly treats the real scanner as
   a pluggable, separately-selected dependency.
-- **`nabhold/shared` contract package** — doesn't exist yet in this
-  organisation. Every place this codebase would consume it (event
-  envelope shape, canonical identifiers, context schemas) is implemented
-  locally with a documented "this is where the shared package plugs in"
-  comment, per ADR-0011 §34 and ADR-0018 §5.
+- **Broader `baobab-platform/shared` consumption** — the Shared repository now
+  publishes contracts, and this engine consumes the five listed in
+  `contracts.lock.yaml` (the `content/v1` capability, request/response schemas
+  and OpenAPI, plus the Control Plane OpenAPI used for context validation).
+  The event envelope shape, canonical identifiers and context schemas
+  introduced in the original implementation remain local, each with a
+  "this is where the shared package plugs in" comment per ADR-0011 §34 and
+  ADR-0018 §5. They have not been reconciled against Shared's `events/v1` and
+  Control Plane contracts in this review.
 - **CDN/application caching layer** — ADR-0020 §59-77 is about
   discipline *if* a cache is introduced, not a mandate to introduce one;
   no measured requirement exists yet.

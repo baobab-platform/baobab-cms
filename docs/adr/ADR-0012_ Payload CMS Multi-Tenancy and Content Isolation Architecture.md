@@ -4,7 +4,7 @@
 **Date:** 2026-09-02  
 **Decision Class:** Platform Architecture / Content Management / Multi-Tenancy  
 **Scope:** Baobab Content Engine  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent ADR:** `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`  
 **Supersedes:** None  
 **Related:** Baobab Canonical Mapping Model, Baobab Control Plane Physical Data Model, Baobab Tenancy Architecture  

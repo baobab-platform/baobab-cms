@@ -13,3 +13,17 @@ export type { SpecificityLevel } from './specificity.js';
 export { resolveLocaleChain } from './fallback.js';
 export { isPublicationEligible, isTemporallyEligible } from './eligibility.js';
 export { resolveContent, resolveComposedContent } from './resolver.js';
+export {
+  handleContentResolve,
+  parseContentResolveRequest,
+  publicationStateFromStatus,
+} from './contract.js';
+export type {
+  ContentEntryRecord,
+  ContentResolveDependencies,
+  ContentResolveOutcome,
+  ContentResolveRequestDto,
+  ContentResolveResponseDto,
+  ProblemDetails,
+  TrustedContentContext,
+} from './contract.js';

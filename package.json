@@ -20,19 +20,20 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@payloadcms/db-postgres": "^3.0.0",
-    "@payloadcms/next": "^3.88.0",
-    "@payloadcms/richtext-lexical": "^3.88.0",
-    "@payloadcms/storage-s3": "^3.88.0",
+    "@payloadcms/db-postgres": "3.90.2",
+    "@payloadcms/next": "3.90.2",
+    "@payloadcms/richtext-lexical": "3.90.2",
+    "@payloadcms/storage-s3": "3.90.2",
     "amqplib": "^0.10.5",
     "dotenv": "^16.4.5",
     "graphql": "^16.9.0",
-    "next": "^16.3.6",
+    "jose": "5.10.0",
+    "next": "16.3.8",
     "openid-client": "^6.8.8",
-    "payload": "^3.0.0",
+    "payload": "3.90.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "sharp": "^0.35.4"
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -48,6 +49,11 @@
     "vitest": "^4.1.11"
   },
   "overrides": {
-    "undici": "7.29.1"
+    "undici": "7.29.1",
+    "source-map-js": "1.2.2",
+    "sass": {
+      "chokidar": "4.0.3"
+    },
+    "dompurify": "3.4.16"
   }
 }

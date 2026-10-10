@@ -4,7 +4,7 @@
 **Date:** 2026-09-04  
 **Decision Class:** Platform Architecture / Security / Content Administration  
 **Scope:** Baobab Content Engine  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent ADRs:**  
 - `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`
 - `ADR-0012-payload-multi-tenancy-and-content-isolation-architecture.md`
@@ -1213,7 +1213,7 @@ Access variation SHALL be configuration and policy driven.
 
 # 110. Contract Governance
 
-Cross-repository actor, role, capability and security-context schemas SHALL be governed in `nabhold/shared`.
+Cross-repository actor, role, capability and security-context schemas SHALL be governed in `baobab-platform/shared`.
 
 Payload SHALL consume those contracts rather than defining divergent equivalents.
 
@@ -1364,7 +1364,7 @@ These costs are accepted.
 25. Privileged operations are auditable.
 26. Role/capability revocation propagates.
 27. Organisation-specific permission branches in code are prohibited.
-28. Cross-repository identity contracts belong in `nabhold/shared`.
+28. Cross-repository identity contracts belong in `baobab-platform/shared`.
 
 ---
 

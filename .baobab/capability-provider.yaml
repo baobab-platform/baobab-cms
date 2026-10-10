@@ -19,13 +19,16 @@
 #
 # Census (EA-02A), candidate review (EA-02B) and contract work (EA-02C):
 #   content.entry.resolve is canonical, with Shared content/v1 as its
-#     contract (content-resolve-request / content-resolve-response). The
-#     resolver in src/baobab/content-resolution is real and implements the
-#     ADR-0014 specificity, inheritance and fallback rules, but no route
-#     accepts ContentResolveRequest or answers ContentResolveResponse yet,
-#     so the capability is planned (CONTRACTED), not claimed as support.
-#     Move it into providers[].support for baobab-cms.payload, with the
-#     route and its contract tests as evidence, once it does.
+#     contract (content-resolve-request / content-resolve-response and the
+#     OpenAPI published in Shared #254). The route POST /v1/content/resolve
+#     is implemented (src/app/v1/content/resolve/route.ts) over the
+#     transport pipeline in src/baobab/content-resolution/route.ts and is
+#     declared here as PARTIAL support: it is covered by unit tests and was
+#     exercised on PostgreSQL 16, but it has not been run against a live
+#     Control Plane, identity provider or granted workload client, and it
+#     carries no certification, binding or activation. Content/v1 still
+#     scopes by legal_entity_id; ADR-BCP-027 (Organisation-first) will need
+#     a Shared amendment adding organisation_id.
 #
 # Validate with a Shared checkout:
 #   python3 <shared>/scripts/capability_catalogue.py validate-declaration \
@@ -38,15 +41,45 @@ schema:
 engine:
   engine_id: baobab-cms
 
-planned_capabilities:
-  - capability_key: content.entry.resolve
-    proposal_status: CONTRACTED
-    description: >
-      Resolve one content entry deterministically for a market, locale and
-      digital estate context through the content/v1 contract, with the
-      ADR-0014 inheritance and fallback provenance.
-    target_provider_key: baobab-cms.payload
+providers:
+  - provider_key: baobab-cms.payload
+    name: Baobab CMS Payload provider
+    description: >-
+      First-party content provider backed by Payload CMS. Provider declaration is
+      repository implementation evidence only; it is not certification,
+      activation, health, binding, grant, routing or production readiness.
+    provider_type: BAOBAB_ENGINE
+    implementation_key: payload
+    simulated: false
+    production_permitted: false
+    invocation:
+      service_reference: service://baobab-cms/content
+      protocol: http
     provenance:
       authority:
         repository: baobab-platform/baobab-cms
         decision: ADR-0014
+    support:
+      - capability_key: content.entry.resolve
+        contract_versions: [1]
+        implementation_status: PARTIAL
+        provenance:
+          authority:
+            repository: baobab-platform/shared
+          source_revision: 5930dcf07d16cbb138fa98af0059d9a35e011114
+        implementation_evidence:
+          - type: source
+            path: src/app/v1/content/resolve/route.ts
+            description: POST /v1/content/resolve provider route; refuses every call unless issuer, audience, JWKS, Control Plane URL and validator token are configured.
+          - type: source
+            path: src/baobab/content-resolution/route.ts
+            description: Pipeline - caller token, scope, context_id, bounded body, Control Plane context validation, preview scope, then resolution.
+          - type: source
+            path: src/baobab/content-resolution/contract.ts
+            description: ContentResolveRequest validation, tenant claim check, preview gating, resolution and problem details.
+          - type: source
+            path: src/baobab/content-resolution/payload-source.ts
+            description: Payload-backed loader for home, navigation, footer, site-settings and group-profile, mapped by Control Plane tenant id.
+          - type: test
+            path: src/baobab/content-resolution/route.test.ts
+            description: Pipeline, Control Plane validator and loader behaviour including negative cases.

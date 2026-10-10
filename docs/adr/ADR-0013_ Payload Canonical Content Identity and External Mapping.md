@@ -4,12 +4,12 @@
 **Date:** 2026-09-04  
 **Decision Class:** Platform Architecture / Content Management / Canonical Identity  
 **Scope:** Baobab Content Engine  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent ADRs:**  
 - `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`
 - `ADR-0012-payload-multi-tenancy-and-content-isolation-architecture.md`
 
-**Related Contracts:** Baobab Canonical Mapping Model; Baobab Control Plane Physical Data Model; `nabhold/shared` canonical schemas  
+**Related Contracts:** Baobab Canonical Mapping Model; Baobab Control Plane Physical Data Model; `baobab-platform/shared` canonical schemas  
 **Supersedes:** None
 
 ---
@@ -846,7 +846,7 @@ RETIRED
 INVALID
 ```
 
-or the canonical lifecycle vocabulary established in `nabhold/shared`.
+or the canonical lifecycle vocabulary established in `baobab-platform/shared`.
 
 A mapping SHALL not be physically deleted merely because it is no longer active unless retention policy explicitly permits deletion.
 
@@ -1433,7 +1433,7 @@ Integration occurs through explicit service contracts and events.
 
 # 74. Shared Contracts
 
-`nabhold/shared` SHALL define portable mapping schemas and identifier representations required across repositories.
+`baobab-platform/shared` SHALL define portable mapping schemas and identifier representations required across repositories.
 
 The Control Plane SHALL implement authoritative mapping behaviour.
 
@@ -1804,7 +1804,7 @@ Commerce Data     Editorial Data
 | Concern | Authority |
 |---|---|
 | Canonical entity identity | Baobab Control Plane |
-| Canonical mapping contracts | `nabhold/shared` |
+| Canonical mapping contracts | `baobab-platform/shared` |
 | Mapping persistence/lifecycle | Baobab Control Plane |
 | Mapping resolution | Control Plane Resolver Service |
 | Payload external identity | Payload CMS |
@@ -1869,7 +1869,7 @@ Payload owns the editorial representation.
 
 The Control Plane owns canonical identity and mapping governance.
 
-`nabhold/shared` owns the portable contracts through which both sides agree on that meaning.
+`baobab-platform/shared` owns the portable contracts through which both sides agree on that meaning.
 
 Neither Payload IDs, URLs, slugs, titles nor convenient business identifiers are permitted to quietly become Baobab's platform identity.
 

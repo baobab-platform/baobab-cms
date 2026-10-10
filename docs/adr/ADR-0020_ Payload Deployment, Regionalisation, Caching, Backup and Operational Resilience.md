@@ -4,7 +4,7 @@
 **Date:** 2026-09-04  
 **Decision Class:** Platform Architecture / Operations / Resilience  
 **Scope:** Baobab Content Engine  
-**Repository:** `nabhold/baobab-cms`  
+**Repository:** `baobab-platform/baobab-cms`  
 **Parent ADRs:**  
 - `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`
 - `ADR-0012-payload-multi-tenancy-and-content-isolation-architecture.md`
@@ -13,7 +13,7 @@
 - `ADR-0018-payload-canonical-events-webhooks-transactional-outbox-and-integration-reliability.md`
 - `ADR-0019-payload-content-schema-governance-versioning-and-migration.md`
 
-**Related Systems:** Baobab Control Plane, `nabhold/shared`, `nabhold/infrastructure`, `nabhold/baobab-dev`, object storage, PostgreSQL, digital estates  
+**Related Systems:** Baobab Control Plane, `baobab-platform/shared`, `baobab-platform/infrastructure`, `baobab-platform/baobab-dev`, object storage, PostgreSQL, digital estates  
 **Supersedes:** None  
 **Architectural Style:** Independently deployable, region-aware, cache-safe, recoverable, observable and policy-driven
 
@@ -1556,7 +1556,7 @@ Deployment topology and operational procedures SHALL be documented in repository
 
 # 156. Infrastructure Ownership
 
-`nabhold/infrastructure` or its canonical successor SHOULD own:
+`baobab-platform/infrastructure` or its canonical successor SHOULD own:
 
 - environment orchestration;
 - deployment manifests;
@@ -1569,7 +1569,7 @@ Deployment topology and operational procedures SHALL be documented in repository
 
 # 157. Content Repository Ownership
 
-`nabhold/baobab-cms` SHALL own:
+`baobab-platform/baobab-cms` SHALL own:
 
 - application image;
 - runtime configuration contract;
@@ -1595,7 +1595,7 @@ The Control Plane SHALL own canonical knowledge of:
 
 # 159. Shared Ownership
 
-`nabhold/shared` SHALL own cross-repository operational contracts where portability is required.
+`baobab-platform/shared` SHALL own cross-repository operational contracts where portability is required.
 
 ---
 
@@ -1857,7 +1857,7 @@ Offboarding retires access and mappings without deleting data contrary to retent
 A suitable operational separation MAY resemble:
 
 ```text
-nabhold/baobab-cms
+baobab-platform/baobab-cms
 ├── src/
 ├── migrations/
 ├── tests/
@@ -1867,7 +1867,7 @@ nabhold/baobab-cms
 ├── health/
 └── docs/
 
-nabhold/infrastructure
+baobab-platform/infrastructure
 ├── environments/
 ├── payload/
 │   ├── deployment/

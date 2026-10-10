@@ -1,9 +1,14 @@
 import type { CollectionConfig, TextFieldSingleValidation } from 'payload';
+import { validateLinkTarget } from './SiteConfigurations.js';
 import { tenantOwnedField, contentScopeField, sameTenantRelationshipField } from '../baobab/tenancy/fields.js';
 import { tenantScopedAccess } from '../baobab/tenancy/access.js';
 import { canonicalIdField } from '../baobab/identity/field.js';
 import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
 import { CanonicalEventType } from '../baobab/events/types.js';
+import { asPageState, createPublicationGuard } from '../baobab/authorization/publication.js';
+
+/** Transitional (ADR-0019 expand step): editors with editorial roles are enforced; legacy editors with none are not yet. */
+const pageGuard = createPublicationGuard({ stateField: 'status', readState: asPageState, transitional: true });
 
 type PageStatus = 'draft' | 'published' | 'archived';
 
@@ -62,6 +67,8 @@ const Pages: CollectionConfig = {
   },
   access: tenantScopedAccess({ writeCapability: 'content.management' }),
   hooks: {
+    beforeChange: [pageGuard.beforeChange],
+    beforeDelete: [pageGuard.beforeDelete],
     afterChange: [
       canonicalAfterChangeHook<{
         id: string | number;
@@ -69,6 +76,12 @@ const Pages: CollectionConfig = {
         status?: PageStatus;
       }>({
         canonicalEntityType: 'PAGE',
+        buildPayload: (doc) => ({
+          id: doc.id,
+          collection: 'pages',
+          contentKey: (doc as { contentKey?: string }).contentKey,
+          slug: (doc as { slug?: string }).slug,
+        }),
         eventTypeFor: (operation, doc, previousDoc) => {
           if (operation === 'create') return CanonicalEventType.CONTENT_CREATED;
           if (doc.status === 'published' && previousDoc?.status !== 'published') {
@@ -87,6 +100,12 @@ const Pages: CollectionConfig = {
     afterDelete: [
       canonicalAfterDeleteHook({
         canonicalEntityType: 'PAGE',
+        buildPayload: (doc) => ({
+          id: doc.id,
+          collection: 'pages',
+          contentKey: (doc as { contentKey?: string }).contentKey,
+          slug: (doc as { slug?: string }).slug,
+        }),
         eventTypeFor: () => CanonicalEventType.CONTENT_RETIRED,
       }),
     ],
@@ -170,6 +189,20 @@ const Pages: CollectionConfig = {
       name: 'content',
       type: 'richText',
     },
+    // Home page fields the estate reads (contentKey "home"). Optional; absent fields fall back to estate defaults.
+    { name: 'eyebrow', type: 'text', admin: { condition: (data) => data?.contentKey === 'home' } },
+    { name: 'headline', type: 'text', admin: { condition: (data) => data?.contentKey === 'home' } },
+    { name: 'introduction', type: 'textarea', admin: { condition: (data) => data?.contentKey === 'home' } },
+    { name: 'institutionalStatement', type: 'textarea', admin: { condition: (data) => data?.contentKey === 'home' } },
+    ...(['primaryCta', 'secondaryCta'] as const).map((name) => ({
+      name,
+      type: 'group' as const,
+      admin: { condition: (data: Record<string, unknown>) => data?.contentKey === 'home' },
+      fields: [
+        { name: 'label', type: 'text' as const },
+        { name: 'href', type: 'text' as const, validate: (v: string | null | undefined) => (v ? validateLinkTarget(v) : true) },
+      ],
+    })),
   ],
 };
 

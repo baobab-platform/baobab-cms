@@ -4,7 +4,7 @@
 **Date:** 2026-09-04  
 **Decision Class:** Platform Architecture / Commerce Integration / Content Authority  
 **Scope:** Baobab Content Engine and Baobab Trade Engine  
-**Repositories:** `nabhold/baobab-cms`, `nabhold/baobab-trade`  
+**Repositories:** `baobab-platform/baobab-cms`, `baobab-platform/baobab-trade`  
 **Parent ADRs:**  
 - `ADR-0011-adopt-payload-cms-as-the-baobab-content-engine.md`
 - `ADR-0013-payload-canonical-content-identity-and-external-mapping.md`

@@ -1,8 +1,8 @@
 # Supplier onboarding boundary (future note)
 
-`nabhold/thamani` is building a supplier registration, vetting and
-cross-border sourcing portal (see `nabhold/shared` ADR-0006 and
-`nabhold/thamani` ADR-0002). This repository's existing boundary already
+`baobab-platform/thamani` is building a supplier registration, vetting and
+cross-border sourcing portal (see `baobab-platform/shared` ADR-0006 and
+`baobab-platform/thamani` ADR-0002). This repository's existing boundary already
 covers it correctly; this note only makes the connection explicit and
 changes no code here.
 

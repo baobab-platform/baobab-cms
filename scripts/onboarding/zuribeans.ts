@@ -47,7 +47,7 @@
  *
  * USAGE
  * -----
- *   # From nabhold/baobab-cms repo root, with DATABASE_URL / PAYLOAD_SECRET set:
+ *   # From baobab-platform/baobab-cms repo root, with DATABASE_URL / PAYLOAD_SECRET set:
  *   npx tsx scripts/onboarding/zuribeans.ts
  *
  *   Optional env:
@@ -250,7 +250,7 @@ async function ensureOrganisation(
  * Lookup key:  code (e.g. zuribeans_za / zuribeans_ug)
  *
  * Rationale: A market is not merely a country (ADR-0011 §11, ADR-0014 §10).
- * Codes align with nabhold/zuribeans env (NEXT_PUBLIC_ENABLED_MARKETS) and
+ * Codes align with baobab-platform/zuribeans env (NEXT_PUBLIC_ENABLED_MARKETS) and
  * Trade bootstrap keys so composition does not invent parallel identifiers.
  */
 async function ensureMarket(
@@ -521,7 +521,7 @@ async function ensureProductStubs(
 async function main(): Promise<void> {
   console.log('=== Zuribeans Content Engine onboarding seed ===')
   console.log('Control Plane offline path — local projections only')
-  console.log('Target script path: nabhold/baobab-cms/scripts/onboarding/zuribeans.ts\n')
+  console.log('Target script path: baobab-platform/baobab-cms/scripts/onboarding/zuribeans.ts\n')
 
   const payload = await getPayload({ config })
 

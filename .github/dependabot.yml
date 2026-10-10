@@ -1,0 +1,45 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Africa/Johannesburg"
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "github-actions"]
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    target-branch: "main"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:15"
+      timezone: "Africa/Johannesburg"
+    open-pull-requests-limit: 10
+    groups:
+      # Payload packages must move together at one exact version (they peer-pin
+      # each other), so they are grouped and reviewed as a single change.
+      payload:
+        patterns: ["payload", "@payloadcms/*"]
+      npm-minor-patch:
+        patterns: ["*"]
+        exclude-patterns: ["payload", "@payloadcms/*"]
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "javascript"]
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    target-branch: "main"

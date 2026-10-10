@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 import { issueCanonicalEntityId } from '../baobab/identity/canonical.js';
 import { EditorialRole } from '../baobab/authorization/roles.js';
+import { platformAdministratorOnlyField } from '../baobab/authorization/publication.js';
 
 /**
  * Payload users are a Content-Engine-local projection of a canonical
@@ -64,21 +65,27 @@ const Users: CollectionConfig = {
     },
     {
       name: 'tenantId',
+      access: { update: platformAdministratorOnlyField },
       type: 'text',
       index: true,
       admin: { description: 'Canonical tenant this actor is bound to (ADR-0012). Required unless platformAdministrator.' },
     },
-    { name: 'legalEntityId', type: 'text' },
+    { name: 'legalEntityId',
+      access: { update: platformAdministratorOnlyField }, type: 'text' },
     {
       name: 'digitalEstateIds',
+      access: { update: platformAdministratorOnlyField },
       type: 'text',
       hasMany: true,
       admin: { description: 'Authorized digital-estate bindings. Empty = unrestricted within tenant.' },
     },
-    { name: 'marketIds', type: 'text', hasMany: true },
-    { name: 'locales', type: 'text', hasMany: true },
+    { name: 'marketIds',
+      access: { update: platformAdministratorOnlyField }, type: 'text', hasMany: true },
+    { name: 'locales',
+      access: { update: platformAdministratorOnlyField }, type: 'text', hasMany: true },
     {
       name: 'editorialRoles',
+      access: { update: platformAdministratorOnlyField },
       type: 'select',
       hasMany: true,
       options: Object.values(EditorialRole).map((value) => ({ label: value, value })),
@@ -98,6 +105,7 @@ const Users: CollectionConfig = {
     },
     {
       name: 'capabilities',
+      access: { update: platformAdministratorOnlyField },
       type: 'text',
       hasMany: true,
       admin: { description: 'Capability bindings this actor carries in the current context (ADR-0011 §35).' },
@@ -115,6 +123,7 @@ const Users: CollectionConfig = {
     },
     {
       name: 'serviceIdentity',
+      access: { update: platformAdministratorOnlyField },
       type: 'checkbox',
       defaultValue: false,
       admin: { description: 'Marks this as a service/automation identity rather than a human editor (ADR-0017 §50).' },
@@ -122,18 +131,21 @@ const Users: CollectionConfig = {
     // Legacy fields — unchanged from the original installation.
     {
       name: 'tenantID',
+      access: { update: platformAdministratorOnlyField },
       type: 'text',
       index: true,
       admin: { description: 'Deprecated legacy field. Use tenantId.' },
     },
     {
       name: 'organisationID',
+      access: { update: platformAdministratorOnlyField },
       type: 'text',
       index: true,
       admin: { description: 'Deprecated legacy field. Use legalEntityId.' },
     },
     {
       name: 'region',
+      access: { update: platformAdministratorOnlyField },
       type: 'text',
       defaultValue: 'GLOBAL',
       index: true,
@@ -141,6 +153,7 @@ const Users: CollectionConfig = {
     },
     {
       name: 'roles',
+      access: { update: platformAdministratorOnlyField },
       type: 'select',
       options: [
         { label: 'Admin', value: 'admin' },

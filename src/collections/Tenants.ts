@@ -54,6 +54,18 @@ const Tenants: CollectionConfig = {
       unique: true,
     },
     {
+      name: 'controlPlaneTenantId',
+      type: 'text',
+      unique: true,
+      index: true,
+      validate: (value: string | null | undefined) =>
+        !value || /^tn_[a-z0-9]+$/.test(value) ? true : 'Must be a Control Plane tenant id such as tn_abc123',
+      admin: {
+        description:
+          'The Control Plane tenant id this projection mirrors. Set only from a Control Plane issuance, never invented. Content resolution maps validated contexts to this tenant through it.',
+      },
+    },
+    {
       name: 'status',
       type: 'select',
       options: [

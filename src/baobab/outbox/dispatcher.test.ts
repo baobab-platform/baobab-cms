@@ -122,4 +122,33 @@ describe('runOutboxDispatchCycle — ADR-0018 CT-003/CT-004/CT-006/CT-007', () =
     expect(result.processed).toBe(0);
     expect(docs[0].status).toBe(OutboxStatus.FAILED_RETRYABLE);
   });
+
+  it('dead-letters a permanent failure at once instead of retrying', async () => {
+    const docs: FakeDoc[] = [{ id: '1', status: OutboxStatus.PENDING, attemptCount: 0, envelope: envelope('e1') }];
+    const now = new Date();
+    const publisher: EventPublisher = {
+      async publish() {
+        throw Object.assign(new Error('revalidate responded 401'), { permanent: true });
+      },
+    };
+    const result = await runOutboxDispatchCycle({ payload: makeFakePayload(docs, now), publisher, now });
+    expect(result.deadLettered).toBe(1);
+    expect(docs[0].status).toBe(OutboxStatus.FAILED_TERMINAL);
+    expect(docs[0].lastError).toBe('revalidate responded 401');
+  });
+
+  it('asks for stale PUBLISHING entries so a crashed worker does not strand them', async () => {
+    let where: unknown;
+    const payload = {
+      async find(args: { where: unknown }) {
+        where = args.where;
+        return { docs: [] };
+      },
+    } as unknown as Payload;
+    const now = new Date('2026-10-09T12:00:00Z');
+    await runOutboxDispatchCycle({ payload, publisher: new AlwaysSucceedsPublisher(), now, publishingLeaseMs: 60_000 });
+    const text = JSON.stringify(where);
+    expect(text).toContain('PUBLISHING');
+    expect(text).toContain('2026-10-09T11:59:00.000Z');
+  });
 });

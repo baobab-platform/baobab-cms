@@ -71,7 +71,7 @@ object-storage-vs-record consistency — see `docs/media/README.md`.
 ## Backup & restore
 
 This repository does not implement backup tooling directly (that's
-infrastructure, per ADR-0020 §156, owned by `nabhold/infrastructure` or
+infrastructure, per ADR-0020 §156, owned by `baobab-platform/infrastructure` or
 equivalent) but a complete backup **must** cover, per ADR-0020 §81-84:
 
 1. PostgreSQL data (the `payload` schema) — standard `pg_dump`/managed
