@@ -53,6 +53,7 @@
     "source-map-js": "1.2.2",
     "sass": {
       "chokidar": "4.0.3"
-    }
+    },
+    "dompurify": "3.4.16"
   }
 }
