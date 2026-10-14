@@ -12,10 +12,11 @@ Control Plane or identity provider.
 2. Scope `content:entry:resolve` required. Else 403 `CONTENT_CONTEXT_REJECTED`.
 3. `context_id` must be a UUID. Else 400.
 4. Body: JSON, at most 8 KiB. Else 400.
-5. The Control Plane validates the context for the actual caller (`POST /v1/platform-context/validate`, caller token as `subject_token`). An optional `organisation_id` in the answer is carried through when it is a UUID and rejects the context when malformed (ADR-BCP-027). On `main` (checked 10 October 2026) the validate handler returns `organisation_id` and `market_id` for a RUNTIME context and states no default LegalEntity requirement. **Not verified:** whether the Control Plane can issue a RUNTIME context for a tenant with no default LegalEntity (the LA-03 runbook says v1 context consumers fail closed for such tenants until LA-05; LA-05 so far covers legal-actor assessment).
+5. The Control Plane validates the context for the actual caller (`POST /v1/platform-context/validate`, caller token as `subject_token`). A mandatory `organisation_id` must attest PRIMARY Organisation as a UUID; absence or malformed identity rejects the context (ADR-BCP-027). On `main` (checked 10 October 2026) the validate handler returns `organisation_id` and `market_id` for a RUNTIME context and states no default LegalEntity requirement. **Not verified:** whether the Control Plane can issue a RUNTIME context for a tenant with no default LegalEntity (the LA-03 runbook says v1 context consumers fail closed for such tenants until LA-05; LA-05 so far covers legal-actor assessment).
    Only a RUNTIME, unexpired context whose `context_id` and `tenant_id` are well formed counts. 4xx is 403 `CONTENT_CONTEXT_REJECTED`;
    5xx, 429, timeout or no validator token is 503 `CONTENT_CONTEXT_UNAVAILABLE` (retryable). Nothing is cached.
-6. The body `tenant_id` must equal the validated tenant (same 403, same text as a rejected context). `preview_mode` needs `content:entry:preview`
+6. Exactly one active Tenant and one active Organisation projection must match the CP-attested identity pair before content is read. Missing, duplicate, inactive or mismatched projections reject the context; a database failure returns retryable 503.
+7. The body `tenant_id` must equal the validated tenant (same 403, same text as a rejected context). `preview_mode` needs `content:entry:preview`
    and the response is `no-store`.
 
 ## Configuration (all required; any missing gives 503 and nothing is served)
@@ -30,8 +31,8 @@ Control Plane or identity provider.
 
 Resolvable keys: `home` (pages) and `navigation`, `footer`, `site-settings`, `group-profile` (site-configurations), all `OVERRIDE`.
 Records are tied to a Control Plane tenant through `tenants.controlPlaneTenantId` (set by the onboarding script from a Control Plane
-issuance, never invented). An unmapped tenant resolves to `NONE`. A record narrows only to the scope it declares, so a
-`DIGITAL_ESTATE` record is matched by a request carrying the legal entity and estate plus locale.
+issuance, never invented). An unmapped tenant is rejected at the projection check; the lower-level content source remains empty for unmapped tenants. A record narrows only to the scope it declares, so a
+`DIGITAL_ESTATE` record is matched by estate and locale without requiring a LegalEntity filter.
 
 ## Not done
 
