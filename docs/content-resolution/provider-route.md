@@ -65,3 +65,10 @@ provider route. This follows the accepted platform authority model; it does not
 accept Proposed ADR-0021 or certify a production binding. Real workload identity,
 independent Nabhold onboarding, protected E2E and operational acceptance remain
 external requirements. CMS provider support remains PARTIAL.
+
+Projection UUID lookup finds case-insensitive candidates and then requires exact
+case-insensitive equality against the returned `controlPlaneOrganisationId`.
+Payload LIKE candidate matching must not itself establish identity: malformed
+stored text containing the UUID as a substring is rejected. UUID syntax is
+validated before querying, so caller `%`/`_` patterns are also refused. Existing
+mixed-case text projections work without a migration; duplicates fail closed.

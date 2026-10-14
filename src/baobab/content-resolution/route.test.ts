@@ -304,10 +304,10 @@ describe('Organisation-first content authority', () => {
   it('checks the exact tenant/Organisation pair without requiring a legal entity', async () => {
     const find = vi.fn()
       .mockResolvedValueOnce({ docs: [{ id: 7, status: 'active' }] })
-      .mockResolvedValueOnce({ docs: [{ status: 'active' }] });
+      .mockResolvedValueOnce({ docs: [{ status: 'active', controlPlaneOrganisationId: ORG }] });
     expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(true);
     expect(find.mock.calls[1][0].where).toEqual({ and: [
-      { tenant: { equals: 7 } }, { controlPlaneOrganisationId: { equals: ORG } },
+      { tenant: { equals: 7 } }, { controlPlaneOrganisationId: { like: ORG } },
     ] });
   });
 
@@ -319,6 +319,35 @@ describe('Organisation-first content authority', () => {
     }
     for (const rows of [[], [{ status: 'inactive' }], [{ status: 'active' }, { status: 'active' }]]) {
       const find = vi.fn().mockResolvedValueOnce({ docs: [{ id: 1, status: 'active' }] }).mockResolvedValueOnce({ docs: rows });
+      expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(false);
+    }
+  });
+});
+
+describe('projection UUID case compatibility', () => {
+  it('uses exact case-insensitive lookup for lower, upper and mixed-case UUIDs', async () => {
+    for (const id of [ORG, ORG.toUpperCase(), ORG.replace('a1b2', 'A1b2')]) {
+      const find = vi.fn().mockResolvedValueOnce({ docs: [{ id: 7, status: 'active' }] })
+        .mockResolvedValueOnce({ docs: [{ status: 'active', controlPlaneOrganisationId: ORG.toUpperCase() }] });
+      expect(await createPayloadProjectionValidator({ find })(TENANT, id)).toBe(true);
+      expect(find.mock.calls[1][0].where.and[1]).toEqual({ controlPlaneOrganisationId: { like: ORG } });
+    }
+  });
+
+  it('rejects wildcard or malformed identity before any projection access', async () => {
+    for (const id of ['%', '_', ORG + '%', 'NABHOLD']) {
+      const find = vi.fn();
+      expect(await createPayloadProjectionValidator({ find })(TENANT, id)).toBe(false);
+      expect(find).not.toHaveBeenCalled();
+    }
+  });
+});
+
+describe('projection exact identity acceptance', () => {
+  it('rejects substring or unrelated UUID candidates even if the database LIKE filter returns them', async () => {
+    for (const stored of ['prefix-' + ORG + '-suffix', ORG + '%', '0199a1b2-c3d4-7e8f-9a0b-0000000000a2', undefined]) {
+      const find = vi.fn().mockResolvedValueOnce({ docs: [{ id: 7, status: 'active' }] })
+        .mockResolvedValueOnce({ docs: [{ status: 'active', controlPlaneOrganisationId: stored }] });
       expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(false);
     }
   });
