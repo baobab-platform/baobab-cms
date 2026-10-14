@@ -72,3 +72,20 @@ Payload LIKE candidate matching must not itself establish identity: malformed
 stored text containing the UUID as a substring is rejected. UUID syntax is
 validated before querying, so caller `%`/`_` patterns are also refused. Existing
 mixed-case text projections work without a migration; duplicates fail closed.
+
+## Signed workload scope convergence — protected R0 preparation
+
+The JWT authenticator accepts Shared's hierarchical scope-key grammar, including
+`content:entry:resolve` and `content:entry:preview`. Previously its one-colon
+regular expression rejected correctly issued CMS credentials before the route
+could enforce them. Space-delimited keys are checked individually; empty keys,
+wildcards, malformed segments and trailing line terminators remain refused.
+
+Shared workload-token v1 at `892d09c64ca6490c46c2f54c37bd366fcc36c3e5` and IAM
+#114 define the consulted syntax. This is a compatible lexical correction, not
+a registry allocation or provider activation. The existing issuer, asymmetric
+signature, audience, expiry, workload actor and required-claim checks remain.
+The route still requires exact scopes and authenticated CP context/projection
+validation. Signed ES256 tokens verified through a real local JWKS service test
+those fences and the route's denial behaviour. Protected acceptance remains
+pending; no live token, grant, binding or certification is created by this fix.

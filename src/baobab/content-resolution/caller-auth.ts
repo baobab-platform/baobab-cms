@@ -15,7 +15,12 @@ export interface CallerAuthConfig {
   jwksUrl: string;
 }
 
-const SCOPE = /^[a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*(?: [a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*)*$/;
+// Shared workload-token grammar permits hierarchical actions such as
+// content:entry:resolve. Syntax does not allocate authority: the route still
+// requires the exact resolve/preview scope and CP independently validates the
+// caller's context. Check each space-delimited key, with a true end assertion:
+// JavaScript's ordinary $ also matches before a final line terminator.
+const SCOPE_KEY = /^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$(?![\s\S])/;
 
 export function createCallerAuthenticator(config: CallerAuthConfig) {
   const jwks = createRemoteJWKSet(new URL(config.jwksUrl));
@@ -28,7 +33,7 @@ export function createCallerAuthenticator(config: CallerAuthConfig) {
         requiredClaims: ['exp', 'iat', 'sub', 'jti', 'scope', 'actor_type'],
       });
       if (payload.actor_type !== 'workload') return null;
-      if (typeof payload.scope !== 'string' || !SCOPE.test(payload.scope)) return null;
+      if (typeof payload.scope !== 'string' || !payload.scope.split(' ').every((scope) => SCOPE_KEY.test(scope))) return null;
       return { scopes: new Set(payload.scope.split(' ')) };
     } catch {
       return null;
