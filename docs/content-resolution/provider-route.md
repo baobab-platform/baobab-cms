@@ -66,7 +66,9 @@ accept Proposed ADR-0021 or certify a production binding. Real workload identity
 independent Nabhold onboarding, protected E2E and operational acceptance remain
 external requirements. CMS provider support remains PARTIAL.
 
-Projection UUID lookup uses exact case-insensitive matching (Payload/Postgres
-`like` maps to `ILIKE`, without added wildcards). The helper validates UUID syntax
-before querying, so `%`/`_` patterns are refused. This supports existing mixed-case
-text projections without a migration; duplicate case variants still fail closed.
+Projection UUID lookup finds case-insensitive candidates and then requires exact
+case-insensitive equality against the returned `controlPlaneOrganisationId`.
+Payload LIKE candidate matching must not itself establish identity: malformed
+stored text containing the UUID as a substring is rejected. UUID syntax is
+validated before querying, so caller `%`/`_` patterns are also refused. Existing
+mixed-case text projections work without a migration; duplicates fail closed.
