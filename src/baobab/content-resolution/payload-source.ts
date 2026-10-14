@@ -201,6 +201,12 @@ export function createPayloadContentSource(payload: PayloadFind): ContentResolve
  */
 export function createPayloadProjectionValidator(payload: PayloadFind) {
   return async (tenantId: string, organisationId: string): Promise<boolean> => {
+    // Payload Postgres maps `like` to ILIKE without adding wildcards. UUIDs
+    // contain no pattern characters, so this is exact case-insensitive identity
+    // equality and also supports already-stored uppercase/mixed-case projections.
+    // Guard here as well as at the CP boundary: this exported helper must never
+    // turn a malformed identifier containing % or _ into a broad lookup.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(organisationId)) return false;
     const tenants = await payload.find({
       collection: 'tenants',
       where: { controlPlaneTenantId: { equals: tenantId } },
@@ -213,7 +219,7 @@ export function createPayloadProjectionValidator(payload: PayloadFind) {
       collection: 'organisations',
       where: { and: [
         { tenant: { equals: tenants.docs[0].id } },
-        { controlPlaneOrganisationId: { equals: organisationId } },
+        { controlPlaneOrganisationId: { like: organisationId.toLowerCase() } },
       ] },
       limit: 2,
       depth: 0,

@@ -65,3 +65,8 @@ provider route. This follows the accepted platform authority model; it does not
 accept Proposed ADR-0021 or certify a production binding. Real workload identity,
 independent Nabhold onboarding, protected E2E and operational acceptance remain
 external requirements. CMS provider support remains PARTIAL.
+
+Projection UUID lookup uses exact case-insensitive matching (Payload/Postgres
+`like` maps to `ILIKE`, without added wildcards). The helper validates UUID syntax
+before querying, so `%`/`_` patterns are refused. This supports existing mixed-case
+text projections without a migration; duplicate case variants still fail closed.

@@ -307,7 +307,7 @@ describe('Organisation-first content authority', () => {
       .mockResolvedValueOnce({ docs: [{ status: 'active' }] });
     expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(true);
     expect(find.mock.calls[1][0].where).toEqual({ and: [
-      { tenant: { equals: 7 } }, { controlPlaneOrganisationId: { equals: ORG } },
+      { tenant: { equals: 7 } }, { controlPlaneOrganisationId: { like: ORG } },
     ] });
   });
 
@@ -320,6 +320,25 @@ describe('Organisation-first content authority', () => {
     for (const rows of [[], [{ status: 'inactive' }], [{ status: 'active' }, { status: 'active' }]]) {
       const find = vi.fn().mockResolvedValueOnce({ docs: [{ id: 1, status: 'active' }] }).mockResolvedValueOnce({ docs: rows });
       expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(false);
+    }
+  });
+});
+
+describe('projection UUID case compatibility', () => {
+  it('uses exact case-insensitive lookup for lower, upper and mixed-case UUIDs', async () => {
+    for (const id of [ORG, ORG.toUpperCase(), ORG.replace('a1b2', 'A1b2')]) {
+      const find = vi.fn().mockResolvedValueOnce({ docs: [{ id: 7, status: 'active' }] })
+        .mockResolvedValueOnce({ docs: [{ status: 'active', controlPlaneOrganisationId: ORG.toUpperCase() }] });
+      expect(await createPayloadProjectionValidator({ find })(TENANT, id)).toBe(true);
+      expect(find.mock.calls[1][0].where.and[1]).toEqual({ controlPlaneOrganisationId: { like: ORG } });
+    }
+  });
+
+  it('rejects wildcard or malformed identity before any projection access', async () => {
+    for (const id of ['%', '_', ORG + '%', 'NABHOLD']) {
+      const find = vi.fn();
+      expect(await createPayloadProjectionValidator({ find })(TENANT, id)).toBe(false);
+      expect(find).not.toHaveBeenCalled();
     }
   });
 });
