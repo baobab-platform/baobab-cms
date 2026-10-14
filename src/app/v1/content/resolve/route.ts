@@ -3,7 +3,7 @@ import { getPayload } from 'payload';
 import config from '../../../../../payload.config.js';
 import { createCallerAuthenticator } from '../../../../baobab/content-resolution/caller-auth.js';
 import { createControlPlaneContextValidator } from '../../../../baobab/content-resolution/control-plane-context.js';
-import { createPayloadContentSource } from '../../../../baobab/content-resolution/payload-source.js';
+import { createPayloadContentSource, createPayloadProjectionValidator } from '../../../../baobab/content-resolution/payload-source.js';
 import { handleContentResolveRoute, MAX_BODY_BYTES } from '../../../../baobab/content-resolution/route.js';
 
 /**
@@ -60,6 +60,7 @@ export async function POST(request: Request): Promise<Response> {
     {
       authenticate,
       validateContext: validate,
+      validateProjection: createPayloadProjectionValidator(payload as never),
       content: createPayloadContentSource(payload as never),
       newCorrelationId: randomUUID,
     },
