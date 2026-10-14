@@ -2,13 +2,15 @@ import type { ContextValidation } from './route.js';
 
 /**
  * Calls the Control Plane's validatePlatformContext operation
- * (Shared contracts/control-plane/v1/openapi.yaml, POST /platform-context/validate).
+ * (Shared platform-context v2, existing POST /v1/platform-context/validate).
  *
  * The validator (this engine) authenticates with its own workload token and
  * holds `context:validate`. The caller's token goes in the body as
  * `subject_token` and nowhere else. Only a RUNTIME, unexpired context counts;
  * any other answer is a rejection, and a transport failure is "unavailable".
  * Nothing is cached: contexts expire and are bound to a principal.
+ * ADR-BCP-027 requires the PRIMARY Organisation attested by CP. A LegalEntity
+ * mapping or a caller/body hint cannot substitute for that business identity.
  */
 
 export interface ValidatorTokenProvider {
@@ -55,6 +57,8 @@ export function createControlPlaneContextValidator(config: ControlPlaneContextCo
           ...(input.traceparent ? { traceparent: input.traceparent } : {}),
         },
         body: JSON.stringify({ context_id: input.contextId, subject_token: input.subjectToken }),
+        redirect: 'error',
+        cache: 'no-store',
         signal: AbortSignal.timeout(config.timeoutMs ?? 3000),
       });
     } catch {
@@ -80,16 +84,17 @@ export function createControlPlaneContextValidator(config: ControlPlaneContextCo
       !TENANT_ID.test(payload.tenant_id) ||
       Number.isNaN(expires) ||
       expires <= now().getTime() ||
-      // organisation_id is optional (the v1 response predates ADR-BCP-027), but never accepted malformed.
-      (payload.organisation_id !== undefined &&
-        (typeof payload.organisation_id !== 'string' || !ORGANISATION_ID.test(payload.organisation_id)))
+      // Fail closed on old/malformed responses rather than invent Organisation
+      // identity from tenant names or DEFAULT LegalEntity projections.
+      typeof payload.organisation_id !== 'string' ||
+      !ORGANISATION_ID.test(payload.organisation_id)
     ) {
       return { status: 'rejected' };
     }
     return {
       status: 'valid',
       tenantId: payload.tenant_id,
-      ...(typeof payload.organisation_id === 'string' ? { organisationId: payload.organisation_id } : {}),
+      organisationId: payload.organisation_id,
     };
   };
 }

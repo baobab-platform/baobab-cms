@@ -1,17 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleContentResolveRoute, type ContentRouteDependencies, type RouteRequest } from './route.js';
 import { createControlPlaneContextValidator } from './control-plane-context.js';
-import { createPayloadContentSource, CONTENT_SOURCES } from './payload-source.js';
+import { createPayloadContentSource, createPayloadProjectionValidator, CONTENT_SOURCES } from './payload-source.js';
 import { InheritanceMode } from './types.js';
 
 const CTX = '3f2b8c1e-5a4d-4c3b-9a1e-0123456789ab';
 const CORR = '11111111-2222-4333-8444-555555555555';
 const TENANT = 'tn_nabhold1';
+const ORG = '0199a1b2-c3d4-7e8f-9a0b-0000000000a1';
 
 function deps(over: Partial<ContentRouteDependencies> = {}): ContentRouteDependencies {
   return {
     authenticate: async () => ({ scopes: new Set(['content:entry:resolve']) }),
-    validateContext: async () => ({ status: 'valid', tenantId: TENANT }),
+    validateContext: async () => ({ status: 'valid', tenantId: TENANT, organisationId: ORG }),
+    validateProjection: async () => true,
     content: {
       policyFor: (key) =>
         key === 'home' ? { contentType: 'page', inheritanceMode: InheritanceMode.OVERRIDE, supportedScopes: ['TENANT', 'LOCALE'] } : undefined,
@@ -146,6 +148,7 @@ describe('Control Plane context validator', () => {
   const valid = (over: object = {}) => ({
     context_id: CTX,
     tenant_id: TENANT,
+    organisation_id: ORG,
     resolved_at: '2026-10-09T00:00:00Z',
     expires_at: '2099-01-01T00:00:00Z',
     authority_purpose: 'RUNTIME',
@@ -161,7 +164,7 @@ describe('Control Plane context validator', () => {
 
   it('accepts a RUNTIME unexpired context and sends the subject token in the body only', async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify(valid()), { status: 200 })) as unknown as typeof fetch;
-    expect(await run(fetchImpl)).toEqual({ status: 'valid', tenantId: TENANT });
+    expect(await run(fetchImpl)).toEqual({ status: 'valid', tenantId: TENANT, organisationId: ORG });
     const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://cp.example/v1/platform-context/validate');
     expect((init.headers as Record<string, string>).authorization).toBe('Bearer validator-token');
@@ -184,7 +187,7 @@ describe('Control Plane context validator', () => {
   it('carries organisation_id when the Control Plane supplies a UUID and rejects a malformed one', async () => {
     const ORG = '0199a1b2-c3d4-7e8f-9a0b-0000000000a1';
     expect(await run(json(200, valid({ organisation_id: ORG })))).toEqual({ status: 'valid', tenantId: TENANT, organisationId: ORG });
-    for (const bad of ['NABHOLD', 'org_1', 42, '']) {
+    for (const bad of [undefined, null, 'NABHOLD', 'org_1', 42, '']) {
       expect(await run(json(200, valid({ organisation_id: bad })))).toEqual({ status: 'rejected' });
     }
   });
@@ -270,5 +273,53 @@ describe('Payload content source', () => {
     const { payload } = fake([{ id: 'l' }], [{ id: 'p', status: 'archived', title: 'Home', slug: 'home' }]);
     const [record] = await createPayloadContentSource(payload).loadCandidates(TENANT, 'home');
     expect(record.publicationState).toBe('ARCHIVED');
+  });
+});
+
+describe('Organisation-first content authority', () => {
+  it('rejects missing or mismatched projection without reading content', async () => {
+    for (const organisationId of [ORG, undefined]) {
+      const loadCandidates = vi.fn();
+      const projection = vi.fn(async () => false);
+      const d = deps({
+        validateContext: async () => ({ status: 'valid', tenantId: TENANT, organisationId } as never),
+        validateProjection: projection,
+      });
+      d.content.loadCandidates = loadCandidates;
+      const result = await handleContentResolveRoute(req(), d);
+      expect(result.status).toBe(403);
+      expect(loadCandidates).not.toHaveBeenCalled();
+      if (organisationId) expect(projection).toHaveBeenCalledWith(TENANT, ORG);
+      else expect(projection).not.toHaveBeenCalled();
+    }
+  });
+
+  it('treats projection database failure as retryable unavailability', async () => {
+    const d = deps({ validateProjection: async () => { throw new Error('database down'); } });
+    const read = vi.spyOn(d.content, 'loadCandidates');
+    expect((await handleContentResolveRoute(req(), d)).status).toBe(503);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it('checks the exact tenant/Organisation pair without requiring a legal entity', async () => {
+    const find = vi.fn()
+      .mockResolvedValueOnce({ docs: [{ id: 7, status: 'active' }] })
+      .mockResolvedValueOnce({ docs: [{ status: 'active' }] });
+    expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(true);
+    expect(find.mock.calls[1][0].where).toEqual({ and: [
+      { tenant: { equals: 7 } }, { controlPlaneOrganisationId: { equals: ORG } },
+    ] });
+  });
+
+  it('rejects missing, duplicate and inactive projections', async () => {
+    for (const rows of [[], [{ id: 1, status: 'suspended' }], [{ id: 1, status: 'active' }, { id: 2, status: 'active' }]]) {
+      const find = vi.fn(async () => ({ docs: rows }));
+      expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(false);
+      expect(find).toHaveBeenCalledTimes(1);
+    }
+    for (const rows of [[], [{ status: 'inactive' }], [{ status: 'active' }, { status: 'active' }]]) {
+      const find = vi.fn().mockResolvedValueOnce({ docs: [{ id: 1, status: 'active' }] }).mockResolvedValueOnce({ docs: rows });
+      expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(false);
+    }
   });
 });

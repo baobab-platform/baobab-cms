@@ -33,7 +33,7 @@ export interface AuthenticatedCaller {
 }
 
 export type ContextValidation =
-  | { status: 'valid'; tenantId: string; /** PRIMARY Organisation, when the Control Plane response carries one (ADR-BCP-027). */ organisationId?: string }
+  | { status: 'valid'; tenantId: string; /** CP-attested PRIMARY Organisation (ADR-BCP-027). */ organisationId: string }
   | { status: 'rejected' }
   | { status: 'unavailable' };
 
@@ -47,6 +47,12 @@ export interface ContentRouteDependencies {
     correlationId: string;
     traceparent?: string;
   }): Promise<ContextValidation>;
+  /**
+   * Compares local projection identity to CP-attested identity before any content
+   * read with overrideAccess. This grants no authority: CP already authorised the
+   * subject/context; a missing, ambiguous or mismatched projection is a rejection.
+   */
+  validateProjection(tenantId: string, organisationId: string): Promise<boolean>;
   content: ContentResolveDependencies;
   newCorrelationId(): string;
 }
@@ -166,6 +172,19 @@ export async function handleContentResolveRoute(
   }
   if (validation.status === 'rejected') {
     return fail(403, 'content-context-rejected', 'CONTENT_CONTEXT_REJECTED', 'Context rejected', 'The request context cannot be used by this caller.');
+  }
+
+  // The public body stays pinned to Shared content v1. Organisation identity is
+  // only from CP validation, never a new caller-selectable payload dimension.
+  if (!UUID.test(validation.organisationId)) {
+    return fail(403, 'content-context-rejected', 'CONTENT_CONTEXT_REJECTED', 'Context rejected', 'The request context cannot be used by this caller.');
+  }
+  try {
+    if (!(await deps.validateProjection(validation.tenantId, validation.organisationId))) {
+      return fail(403, 'content-context-rejected', 'CONTENT_CONTEXT_REJECTED', 'Context rejected', 'The request context cannot be used by this caller.');
+    }
+  } catch {
+    return fail(503, 'content-context-unavailable', 'CONTENT_CONTEXT_UNAVAILABLE', 'Context validation unavailable', 'The projection could not be checked.', true);
   }
 
   // 6. Resolve.

@@ -37,3 +37,30 @@ issuance, never invented). An unmapped tenant resolves to `NONE`. A record narro
 
 Locale fallback chains are not configured (a request for `en` does not find `en-ZA`), `COMPOSE` is unsupported (422), list-style content
 (portfolio, sectors, insights) has no resolve keys yet, and no live Control Plane or IdP exchange has been tested.
+
+## Organisation-first context convergence — Nabhold v2.0 G05 / P0-02
+
+The provider now requires `organisation_id` in CP's RUNTIME validation response,
+as specified by accepted ADR-BCP-027 and Shared platform-context v2. Missing,
+malformed, expired or provisioning context is rejected. Redirects are refused
+when sending validator/subject tokens; validation responses are never cached.
+
+Before reading content with `overrideAccess`, the route compares the validated
+Tenant and PRIMARY Organisation against exactly one active local Tenant and one
+active Organisation projection in that Tenant. Missing, duplicate, inactive or
+mismatched projections return the existing generic context-rejected response;
+database failure returns retryable unavailability. Projection consistency grants
+no authority and cannot replace the authenticated CP decision.
+
+Shared content v1 remains unchanged: no `organisation_id` field is accepted in
+the request body, and its optional `legal_entity_id` remains only a content
+filter. No LegalEntity is required by the new identity check. Existing fields
+and migrations already carry `controlPlaneOrganisationId`; no schema migration
+or backfill from company names/LegalEntity values is introduced.
+
+Compatibility: old CP validation responses without PRIMARY Organisation now
+fail closed. Upgrade/qualify CP and reconcile projections before deploying this
+provider route. This follows the accepted platform authority model; it does not
+accept Proposed ADR-0021 or certify a production binding. Real workload identity,
+independent Nabhold onboarding, protected E2E and operational acceptance remain
+external requirements. CMS provider support remains PARTIAL.

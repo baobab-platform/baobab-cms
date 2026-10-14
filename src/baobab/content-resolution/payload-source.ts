@@ -189,3 +189,36 @@ export function createPayloadContentSource(payload: PayloadFind): ContentResolve
     },
   };
 }
+
+/**
+ * Check the Tenant/PRIMARY Organisation projection as one pair. Querying the
+ * Organisation UUID alone would allow a valid but unrelated business to satisfy
+ * the check. Limit two detects duplicate mappings, and inactive projections fail
+ * closed. No legal-entity reference is needed for institutional content.
+ *
+ * Local projection data is consistency evidence only; callers must first obtain
+ * a successful CP context validation for their subject token (route.ts).
+ */
+export function createPayloadProjectionValidator(payload: PayloadFind) {
+  return async (tenantId: string, organisationId: string): Promise<boolean> => {
+    const tenants = await payload.find({
+      collection: 'tenants',
+      where: { controlPlaneTenantId: { equals: tenantId } },
+      limit: 2,
+      depth: 0,
+      overrideAccess: true,
+    });
+    if (tenants.docs.length !== 1 || tenants.docs[0].status !== 'active' || tenants.docs[0].id == null) return false;
+    const organisations = await payload.find({
+      collection: 'organisations',
+      where: { and: [
+        { tenant: { equals: tenants.docs[0].id } },
+        { controlPlaneOrganisationId: { equals: organisationId } },
+      ] },
+      limit: 2,
+      depth: 0,
+      overrideAccess: true,
+    });
+    return organisations.docs.length === 1 && organisations.docs[0].status === 'active';
+  };
+}
