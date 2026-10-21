@@ -104,6 +104,7 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
   const steps: StepResult[] = [];
   const blockers: string[] = [];
   const ids: Record<string, string> = {};
+  const blankReferences: Array<{ collection: string; id: string; data: Record<string, unknown>; step: string }> = [];
   const approvedDomains = options.approvedDomains ?? [];
   const writing = options.mode === 'apply';
   const cpTenantId = options.controlPlaneTenantId;
@@ -163,6 +164,10 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
     if (rows.length > 1) blockers.push('DUPLICATE_NAMESPACE: ' + collection);
     existing[collection] = rows.length === 1 ? rows[0] : undefined;
   }
+  for (const collection of ['tenants', 'organisations', 'digital-estates']) {
+    if (existing[collection] && existing[collection].status !== 'active') blockers.push('NAMESPACE_DISABLED: ' + collection);
+  }
+  if (existing.markets && existing.markets.enabled !== true) blockers.push('NAMESPACE_DISABLED: markets');
   const root = existing.tenants;
   for (const collection of ['organisations', 'markets', 'digital-estates']) {
     const child = existing[collection];
@@ -321,8 +326,7 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
 
   if (tenant && cpTenantId && !tenant.controlPlaneTenantId && blockers.length === 0) {
     if (writing) {
-      await repo.update('tenants', String(tenant.id), { controlPlaneTenantId: cpTenantId });
-      steps.push({ step: 'tenant-control-plane-id', collection: 'tenants', action: 'create', detail: 'filled a blank value' });
+      blankReferences.push({ collection: 'tenants', id: String(tenant.id), data: { controlPlaneTenantId: cpTenantId }, step: 'tenant-control-plane-id' });
     } else {
       steps.push({
         step: 'tenant-control-plane-id',
@@ -373,8 +377,7 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
   });
   if (organisation && cpOrgId && !organisation.controlPlaneOrganisationId && blockers.length === 0) {
     if (writing) {
-      await repo.update('organisations', String(organisation.id), { controlPlaneOrganisationId: cpOrgId });
-      steps.push({ step: 'organisation-control-plane-id', collection: 'organisations', action: 'create', detail: 'filled a blank value' });
+      blankReferences.push({ collection: 'organisations', id: String(organisation.id), data: { controlPlaneOrganisationId: cpOrgId }, step: 'organisation-control-plane-id' });
     } else {
       steps.push({
         step: 'organisation-control-plane-id',
@@ -519,6 +522,13 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
       return problems;
     },
   });
+
+  // A blank reference is a mutation too. Defer it until every existing
+  // descendant/workload check has passed; a non-converged graph receives no fill.
+  if (blockers.length === 0) for (const pending of blankReferences) {
+    await repo.update(pending.collection, pending.id, pending.data);
+    steps.push({ step: pending.step, collection: pending.collection, action: 'create', detail: 'filled a blank value' });
+  }
 
   return report();
 }

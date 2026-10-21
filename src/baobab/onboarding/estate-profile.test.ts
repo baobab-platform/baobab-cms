@@ -151,6 +151,38 @@ describe('independently scoped estate profiles', () => {
     }
   });
 
+  it('refuses blank tenant-ID fills before inspecting disabled descendants', async () => {
+    for (const [collection, field, value] of [['organisations', 'status', 'inactive'],
+      ['digital-estates', 'status', 'inactive'], ['markets', 'enabled', false]] as const) {
+      const { repo, store } = memory();
+      await onboardSyntheticEstate(repo, profile, options);
+      store[collection][0][field] = value;
+      const before = JSON.stringify(store);
+      const supplied = syntheticEstateProfile(profile.runId, { tenant: 'tn_unitfixture' });
+      expect((await onboardSyntheticEstate(repo, supplied, options)).converged).toBe(false);
+      expect(JSON.stringify(store)).toBe(before);
+    }
+  });
+
+  it('never labels altered editorial data as a CMS-owned publication fixture', async () => {
+    for (const changed of ['title', 'introduction', 'content', 'navigation', 'footer', 'scope', 'effective'] as const) {
+      const { repo, store } = memory();
+      await onboardSyntheticEstate(repo, profile, options);
+      await seedSyntheticContent(repo, profile, options);
+      if (changed === 'title') store.pages[0].title = 'Editor-owned replacement';
+      if (changed === 'introduction') store.pages[0].introduction = 'Editor amendment';
+      if (changed === 'content') store.pages[0].content = { root: { children: [{ text: 'Editor story' }] } };
+      if (changed === 'navigation') store['site-configurations'][0].navigationItems = [{ label: 'Editor route', href: '/edited' }];
+      if (changed === 'footer') store['site-configurations'][1].tagline = 'Editor addition';
+      if (changed === 'scope') store.pages[0].contentScope = 'TENANT';
+      if (changed === 'effective') store.pages[0].effectiveFrom = '2026-10-21T00:00:00Z';
+      const before = JSON.stringify(store);
+      await expect(setSyntheticContentState(repo, profile, 'published', options)).rejects.toThrow();
+      await expect(setSyntheticContentState(repo, profile, 'withdrawn', options)).rejects.toThrow();
+      expect(JSON.stringify(store)).toBe(before);
+    }
+  });
+
   it('scopes duplicate detection to estate and locale and rejects a lying repository adapter', async () => {
     const { repo, store } = memory();
     await onboardSyntheticEstate(repo, profile, options);

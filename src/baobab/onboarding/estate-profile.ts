@@ -1,3 +1,4 @@
+import { contentDataForKey } from '../content-resolution/payload-source.js';
 import { isDeepStrictEqual } from 'node:util';
 import { onboardEstate, type OnboardingOptions, type ProjectionRepository } from './estate.js';
 import { seedEstateContent, type ContentSeedRepository, type SeedSpec } from './nabhold-content.js';
@@ -117,6 +118,20 @@ export async function setSyntheticContentState(repo: ContentSeedRepository, prof
   if (options.mode !== 'apply' || !['draft', 'published', 'withdrawn'].includes(state)) throw new Error('Explicit fixture apply required');
   const report = await seedSyntheticContent(repo, profile, { ...options, mode: 'verify' });
   if (!report.converged) throw new Error('Synthetic content ownership or convergence failed');
+  // Validate every fixture before the first publication write. Scope/key alone
+  // does not make editor-authored or altered content a CMS-owned fixture. The
+  // actual delivery projection ignores only Payload array-row IDs/empty defaults.
+  for (const seed of profile.seeds) {
+    const tenants = await repo.find('tenants', 'code', profile.tenantCode, 2);
+    const estates = await repo.find('digital-estates', 'code', profile.estateCode, 2);
+    if (tenants.length !== 1 || estates.length !== 1) throw new Error('Fixture namespace changed');
+    const rows = await repo.findScoped(seed.collection, String(tenants[0].id), seed.contentKey, seed.kind,
+      { digitalEstateId: String(estates[0].id), locale: profile.locale });
+    if (rows.length !== 1 || String(rows[0].id) !== report.ids['content-' + seed.contentKey] ||
+        !isDeepStrictEqual(contentDataForKey(seed.contentKey, rows[0]), contentDataForKey(seed.contentKey, seed.fields)) ||
+        rows[0].contentScope !== 'DIGITAL_ESTATE' || rows[0].effectiveFrom || rows[0].effectiveTo ||
+        Array.isArray(rows[0].regions) && rows[0].regions.length) throw new Error('Fixture content changed; editor content is never published by setup');
+  }
   for (const seed of profile.seeds) {
     await repo.update(seed.collection, report.ids['content-' + seed.contentKey], seed.collection === 'pages'
       ? { status: state === 'withdrawn' ? 'archived' : state }

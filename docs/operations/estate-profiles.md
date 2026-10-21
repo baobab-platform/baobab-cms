@@ -27,11 +27,15 @@ Existing nonblank IDs are never replaced. Market/estate reference reconciliation
 requires fresh disposable provisioning rather than repairing a mismatch.
 
 The shared seeder queries by tenant, estate, locale, content key and kind, then
-checks tenant/organisation/market/estate ownership again before accepting any
+checks active tenant/organisation/market/estate ownership again before accepting any
 record. Duplicate or wrong-owner records block; existing editor content is never
 updated. The synthetic controller verifies the complete set before explicitly
 publishing, withdrawing or restoring drafts through the supplied CMS repository
-port. Its receipt says `CMS_OWNED_DISPOSABLE_FIXTURE`, human editorial approval
+port. Before changing state, it compares every record’s current delivery data
+to the frozen seed using the actual CMS delivery projection, and refuses altered
+copy, extra delivered fields, wider scope or effective-date/region changes.
+Payload array-row IDs and empty optional defaults are the only ignored shape
+differences. It never publishes editor amendments as fixture content. Its receipt says `CMS_OWNED_DISPOSABLE_FIXTURE`, human editorial approval
 false, and connected qualification false. This is trusted local fixture code,
 not an HTTP route or a new authorisation mechanism. A Payload adapter must use
 the existing explicit system context and still run collection hooks.
