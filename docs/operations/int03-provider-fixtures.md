@@ -28,17 +28,45 @@ the CLI requires all of:
 For source regression only, the existing GitHub PG17 component job may use
 loopback with both `GITHUB_ACTIONS=true` and its existing explicit
 `CMS_PG17_COMPONENT_QUALIFICATION=synthetic-disposable` flag. That job creates
-a second isolated database and exercises all seven seed/verify/state calls.
+a second isolated database and exercises the seed/verify/state lifecycle plus
+an explicit unresolved-reference handoff verification.
 This does not add host ports to the Infrastructure provider.
 
 It requires actual PostgreSQL 17 and committed migrations. Seed is idempotent;
 other actions verify the entire owned profile/content first. Publication state
 changes use the frozen fixture comparison, never human editorial approval.
 Every returned record's delivery projection is compared with the fixed seed.
-The bounded result reports explicit UNRESOLVED canonical references and false
+The bounded result defaults to explicit UNRESOLVED canonical references and false
 identity/CP-issuance/connected/production claims. No account or credential is
 created by this port. Infrastructure owns complete storage/container/key cleanup,
 including versions/outbox/audit rows, on success, failure and interruption.
+
+## Run-bound CP reference handoff
+
+The later connected runner may supply `CMS_INT03_REFERENCE_DECLARATION` before
+every fixture action. This is a bounded configuration input, not a registration
+API or an assertion that CP issuance has been verified. Serialize one JSON object
+with `JSON.stringify` (no interior whitespace or duplicate keys), containing
+exactly `schema: "cms.int03.reference-declaration.v1"`, `run_id` matching the
+database/profile run and `references`. The references object must contain exactly
+`tenant`, `organisation`, `legalEntity`, `market` and `digitalEstate`. All five
+must be `UNRESOLVED`, or all must be supplied in their maintained CP identifier
+formats. Mixed, stale-run, oversized, unknown-field or malformed declarations
+refuse before loading config or touching the database.
+
+The connected runner must obtain supplied identifiers from actual CP issuance
+and read back their current tenant/owner/estate relationships independently.
+Never generate identifiers to populate this input or copy Nabhold/subsidiary
+references into a synthetic profile. Existing profile reconciliation refuses
+canonical aliases, changed references or a conflicting local ownership graph.
+Use a fresh disposable database/profile for the resolved run; a held component
+database is not promoted to a connected qualification environment.
+
+The result labels supplied values `EXTERNAL_DECLARATION_NOT_VERIFIED` and always
+keeps `cp_issuance_proven`, human approval, connected qualification and production
+authorization false. Omission/all-UNRESOLVED values retain `reference_source:
+UNRESOLVED`. Unit identifier vectors validate parsing only and are never persisted
+as issued CP identities. The actual PG regression uses only UNRESOLVED references.
 
 The canonical content route now returns the existing 401 authentication problem
 for absent or malformed bearer syntax before dependency/configuration setup.

@@ -5,19 +5,20 @@ import { contentDataForKey } from '../../src/baobab/content-resolution/payload-s
 import assert from 'node:assert/strict';
 import { getPayload } from 'payload';
 import type { PostgresAdapter } from '@payloadcms/db-postgres';
-import { int03FixtureBoundary } from '../../src/baobab/onboarding/fixture-boundary.js';
+import { int03FixtureBoundary, int03ReferenceDeclaration } from '../../src/baobab/onboarding/fixture-boundary.js';
 import { createPayloadEstateRepository } from '../../src/baobab/onboarding/payload-repository.js';
 import { onboardSyntheticEstate, seedSyntheticContent, setSyntheticContentState, syntheticEstateProfile } from '../../src/baobab/onboarding/estate-profile.js';
 
 async function main() {
   const { runId, action } = int03FixtureBoundary(process.env, process.argv.slice(2));
+  const references = int03ReferenceDeclaration(process.env.CMS_INT03_REFERENCE_DECLARATION, runId);
   const { default: config } = await import('../../payload.config.js');
   const payload = await getPayload({ config });
   try {
     const version = await (payload.db as unknown as PostgresAdapter).pool.query('SHOW server_version_num');
     assert.equal(Math.floor(Number(version.rows[0].server_version_num) / 10000), 17);
     const repo = createPayloadEstateRepository(payload);
-    const profile = syntheticEstateProfile(runId);
+    const profile = syntheticEstateProfile(runId, references);
     const options = { mode: action === 'seed' ? 'apply' as const : 'verify' as const,
       environment: 'non-production' as const, projectionMode: 'local' as const };
     assert((await onboardSyntheticEstate(repo, profile, options)).converged);
@@ -40,6 +41,8 @@ async function main() {
     return { schema: 'cms.int03.fixture.v1', run_id: runId, action, converged: true,
       database_version_num: Number(version.rows[0].server_version_num), states,
       canonical_references: profile.canonicalReferences, evidence_class: 'CMS_COMPONENT_SYNTHETIC_DATA',
+      reference_source: Object.values(references).every(reference => reference === 'UNRESOLVED')
+        ? 'UNRESOLVED' : 'EXTERNAL_DECLARATION_NOT_VERIFIED',
       human_editorial_approval: false, identities_created: false, cp_issuance_proven: false,
       connected_qualification: false, full_int03_acceptance: false, production_authorized: false };
   } finally { await payload.destroy(); }

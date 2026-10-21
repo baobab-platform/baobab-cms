@@ -111,6 +111,10 @@ jobs:
           for action in seed seed verify publish withdraw draft verify; do
             node --import tsx scripts/qualification/int03-fixture.ts "$action"
           done
+          # Exercise the handoff parser against the real provider without
+          # inventing CP-issued identifiers; actual issuance remains unproven.
+          export CMS_INT03_REFERENCE_DECLARATION='{"schema":"cms.int03.reference-declaration.v1","run_id":"0123456789abcdef","references":{"tenant":"UNRESOLVED","organisation":"UNRESOLVED","legalEntity":"UNRESOLVED","market":"UNRESOLVED","digitalEstate":"UNRESOLVED"}}'
+          node --import tsx scripts/qualification/int03-fixture.ts verify
 
   dependency-review:
     name: Dependency review
