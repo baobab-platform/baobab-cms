@@ -5,6 +5,8 @@ import { createCallerAuthenticator } from '../../../../baobab/content-resolution
 import { createControlPlaneContextValidator } from '../../../../baobab/content-resolution/control-plane-context.js';
 import { createPayloadContentSource, createPayloadProjectionValidator } from '../../../../baobab/content-resolution/payload-source.js';
 import { handleContentResolveRoute, MAX_BODY_BYTES } from '../../../../baobab/content-resolution/route.js';
+import { createDevelopmentValidatorTokens } from '../../../../baobab/identity/development-validator.js';
+import type { ValidatorTokenProvider } from '../../../../baobab/content-resolution/control-plane-context.js';
 
 /**
  * POST /v1/content/resolve, the provider route for content.entry.resolve
@@ -24,8 +26,16 @@ export async function POST(request: Request): Promise<Response> {
   const jwksUrl = env('CMS_TOKEN_JWKS_URL');
   const controlPlane = env('CONTROL_PLANE_URL');
   const validatorToken = env('CMS_CONTEXT_VALIDATOR_TOKEN');
+  let tokens: ValidatorTokenProvider | undefined;
+  try {
+    // An explicitly requested proof profile must never fall back to a product
+    // token if its independent development credential/deadline is invalid.
+    tokens = env('CMS_CONTEXT_VALIDATOR_MODE')
+      ? createDevelopmentValidatorTokens()
+      : validatorToken ? { getToken: async () => validatorToken } : undefined;
+  } catch { tokens = undefined; }
 
-  if (!issuer || !audience || !jwksUrl || !controlPlane || !validatorToken) {
+  if (!issuer || !audience || !jwksUrl || !controlPlane || !tokens) {
     return Response.json(
       { code: 'CONTENT_CONTEXT_UNAVAILABLE', title: 'Not configured', status: 503, retryable: true },
       { status: 503, headers: { 'content-type': 'application/problem+json', 'cache-control': 'no-store' } },
@@ -44,8 +54,9 @@ export async function POST(request: Request): Promise<Response> {
   const authenticate = createCallerAuthenticator({ issuer, audience, jwksUrl });
   const validate = createControlPlaneContextValidator({
     baseUrl: controlPlane,
-    // Interim: a token supplied by the platform. Replace with the workload token client when IAM provides it.
-    tokens: { getToken: async () => validatorToken },
+    // A proof run uses its own current, independently scoped development
+    // validator. The existing explicit token input is kept outside that mode.
+    tokens,
   });
 
   const url = new URL(request.url);

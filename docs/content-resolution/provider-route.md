@@ -89,3 +89,41 @@ The route still requires exact scopes and authenticated CP context/projection
 validation. Signed ES256 tokens verified through a real local JWKS service test
 those fences and the route's denial behaviour. Protected acceptance remains
 pending; no live token, grant, binding or certification is created by this fix.
+
+## Disposable INT-03 development validator
+
+The explicit `CMS_CONTEXT_VALIDATOR_MODE=development-proof` profile uses
+maintained `openid-client` client-credentials acquisition and fresh trusted
+introspection on every context validation. It is restricted to the separately
+accepted `baobab-int03-cms-validator`, environment `development`, CP audience and
+`context:validate` only. It never acquires `context:resolve`, content, preview or
+administration permissions, and is not the Nabhold caller. CP still validates
+the caller's actual token and current same-Principal context independently.
+
+Required server-only inputs are `CMS_WORKLOAD_ENVIRONMENT=development`,
+`CMS_WORKLOAD_CLIENT_ID=baobab-int03-cms-validator`, a distinct per-run
+`CMS_WORKLOAD_CLIENT_SECRET` of at least 32 characters, reviewed HTTPS
+`CMS_WORKLOAD_TOKEN_ENDPOINT` and `CMS_WORKLOAD_INTROSPECTION_ENDPOINT` on
+`CMS_TOKEN_ISSUER`'s origin, and a fixed absolute ISO `CMS_PROOF_DEADLINE`.
+`CMS_TOKEN_AUDIENCE` must remain `baobab-cms`. Retain the existing verified JWKS,
+CP URL, projection and content-provider configuration. The deadline is set by
+the disposable orchestrator at client creation and must never roll forward.
+
+Tokens are at most five minutes, bounded to the remaining run window (maximum
+90 minutes), with no refresh/ID token or positive revocation cache. OAuth
+responses have a 64 KiB decoded-byte ceiling and five-second deadline. No
+redirect, insecure TLS, foreign credential endpoint or expanded/swapped token
+identity is accepted. Failures are bounded and contain no credentials or peer
+response. An unknown/invalid explicit mode fails 503 before Payload startup;
+it cannot fall back to `CMS_CONTEXT_VALIDATOR_TOKEN`. Supplying that fixed token
+alongside proof configuration is also refused. Outside proof mode the existing
+explicit validator-token input is unchanged.
+
+This is source preparation, not a registry activation, IAM provisioning,
+EngineRelease, certification, health, binding or provider qualification. The
+orchestrator must consume the approved canonical registry, independently create
+and read back both ephemeral identities, enforce early-close revocation or
+destroy all issuer trust/accepting runtimes, and always tear down. PARTIAL /
+non-production support remains unchanged. Actual CMS/PostgreSQL and complete
+NAB/L4 acceptance, protected IAM/CP, executive authority, staging, production
+and R0–R3 remain open. Protocol tests do not replace those gates.
