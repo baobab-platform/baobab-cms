@@ -151,6 +151,30 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
     }
   }
 
+  // Inspect the complete existing namespace graph before creating even its
+  // root. Matching codes are selectors, never proof of tenant ownership. An
+  // orphan/wrong-owner child must not cause a new tenant or predecessor write.
+  const existing: Record<string, Doc | undefined> = {};
+  for (const [collection, code] of [
+    ['tenants', profile.tenantCode], ['organisations', profile.organisationCode],
+    ['markets', profile.marketCode], ['digital-estates', profile.estateCode],
+  ]) {
+    const rows = await repo.find(collection, 'code', code, 2);
+    if (rows.length > 1) blockers.push('DUPLICATE_NAMESPACE: ' + collection);
+    existing[collection] = rows.length === 1 ? rows[0] : undefined;
+  }
+  const root = existing.tenants;
+  for (const collection of ['organisations', 'markets', 'digital-estates']) {
+    const child = existing[collection];
+    if (child && (!root || asString(child.tenant) !== String(root.id))) blockers.push('NAMESPACE_WRONG_TENANT: ' + collection);
+  }
+  if (existing.markets && (!existing.organisations || asString(existing.markets.legalEntity) !== String(existing.organisations.id))) {
+    blockers.push('NAMESPACE_WRONG_ORGANISATION');
+  }
+  if (existing['digital-estates'] && (!existing.markets || asString(existing['digital-estates'].defaultMarket) !== String(existing.markets.id))) {
+    blockers.push('NAMESPACE_WRONG_MARKET');
+  }
+
   // A CP identifier may project into exactly one local namespace. Check before
   // the first write, including blank-ID fills, rather than relying on SQL's
   // unique constraints or accidentally aliasing an independently governed tenant.
@@ -336,6 +360,7 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
     }),
     check: (doc) => {
       const problems: string[] = [];
+      if (doc.status !== 'active') problems.push('organisation is not active');
       if (profile.firstPartyId && doc.canonicalLegalEntityId !== profile.firstPartyId) {
         problems.push(`canonicalLegalEntityId is "${String(doc.canonicalLegalEntityId)}", expected ${profile.firstPartyId}`);
       }
@@ -397,6 +422,7 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
     }),
     check: (doc) => {
       const problems: string[] = [];
+      if (doc.enabled !== true) problems.push('market is not enabled');
       if (options.controlPlaneMarketId && doc.canonicalMarketId !== options.controlPlaneMarketId) problems.push('market CP reference differs or is unresolved');
       if (!sameSet(doc.geography, profile.geography)) {
         problems.push(`geography ${JSON.stringify(doc.geography)} exceeds ${profile.registryName}'s configured market`);
@@ -430,6 +456,7 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
     check: (doc) => {
       const problems: string[] = [];
       if (tenant && asString(doc.tenant) !== String(tenant.id)) problems.push('estate belongs to a different tenant');
+      if (doc.status !== 'active') problems.push('estate is not active');
       if (options.controlPlaneDigitalEstateId && doc.canonicalDigitalEstateId !== options.controlPlaneDigitalEstateId) problems.push('estate CP reference differs or is unresolved');
       if (market && asString(doc.defaultMarket) !== String(market.id)) problems.push('defaultMarket is not the configured market');
       const bound = Array.isArray(doc.domains) ? (doc.domains as unknown[]).map(String) : [];

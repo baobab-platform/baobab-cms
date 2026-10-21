@@ -92,6 +92,25 @@ describe('independently scoped estate profiles', () => {
     expect(JSON.stringify(store)).toBe(before);
   });
 
+  it('checks matching-code canonical rows ownership before creating a missing namespace root', async () => {
+    const id = '0199a1b2-c3d4-7e8f-9a0b-0000000000a1';
+    for (const [collection, code, field, refs] of [
+      ['organisations', profile.organisationCode, 'canonicalLegalEntityId', { legalEntity: id }],
+      ['organisations', profile.organisationCode, 'controlPlaneOrganisationId', { organisation: id }],
+      ['markets', profile.marketCode, 'canonicalMarketId', { market: 'mkt_foreign' }],
+      ['digital-estates', profile.estateCode, 'canonicalDigitalEstateId', { digitalEstate: id }],
+    ] as const) {
+      const { repo, store } = memory();
+      const value = Object.values(refs)[0];
+      store[collection] = [{ id: 'foreign-child', code, [field]: value, tenant: 'subsidiary-tenant' }];
+      const before = JSON.stringify(store);
+      const selected = syntheticEstateProfile(profile.runId, refs);
+      expect((await onboardSyntheticEstate(repo, selected, options)).converged).toBe(false);
+      expect(JSON.stringify(store)).toBe(before);
+      expect(store.tenants).toBeUndefined();
+    }
+  });
+
   it('refuses altered selectors, extra fields, production and absent local mode before writes', async () => {
     const { repo, store } = memory();
     for (const changed of [{ ...profile, tenantCode: 'nabhold' }, { ...profile, serviceEmail: 'borrowed@example.test' },
@@ -115,6 +134,19 @@ describe('independently scoped estate profiles', () => {
       const before = JSON.stringify(store);
       expect((await seedSyntheticContent(repo, profile, options)).converged).toBe(false);
       expect((await onboardSyntheticEstate(repo, profile, options)).converged).toBe(false);
+      expect(JSON.stringify(store)).toBe(before);
+    }
+  });
+
+  it('refuses fixture publication after a tenant, organisation, estate or market is disabled', async () => {
+    for (const [collection, field, value] of [['tenants', 'status', 'inactive'], ['organisations', 'status', 'inactive'],
+      ['digital-estates', 'status', 'inactive'], ['markets', 'enabled', false]] as const) {
+      const { repo, store } = memory();
+      await onboardSyntheticEstate(repo, profile, options);
+      await seedSyntheticContent(repo, profile, options);
+      store[collection][0][field] = value;
+      const before = JSON.stringify(store);
+      await expect(setSyntheticContentState(repo, profile, 'published', options)).rejects.toThrow();
       expect(JSON.stringify(store)).toBe(before);
     }
   });

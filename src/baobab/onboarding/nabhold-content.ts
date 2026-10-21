@@ -120,7 +120,8 @@ export async function seedEstateContent(
   }
 
   const relation = (value: unknown) => typeof value === 'object' && value !== null ? String((value as { id?: unknown }).id) : String(value);
-  if ([org, estate, market].some(row => relation(row.tenant) !== String(tenant.id)) ||
+  if (tenant.status !== 'active' || org.status !== 'active' || estate.status !== 'active' || market.enabled !== true ||
+      [org, estate, market].some(row => relation(row.tenant) !== String(tenant.id)) ||
       relation(market.legalEntity) !== String(org.id) || relation(estate.defaultMarket) !== String(market.id)) {
     blockers.push('PREREQUISITES_WRONG_OWNER: tenant, organisation, market and estate must belong to the same configured graph.');
     return done();

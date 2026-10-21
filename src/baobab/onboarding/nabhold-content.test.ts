@@ -7,10 +7,10 @@ type Row = Record<string, unknown> & { id: string };
 function repoWith(prereq = true) {
   const store: Record<string, Row[]> = prereq
     ? {
-        tenants: [{ id: 't1', code: 'nabhold' }],
-        organisations: [{ id: 'o1', code: 'nabhold', tenant: 't1' }],
-        'digital-estates': [{ id: 'e1', code: 'nabhold-corporate', tenant: 't1', defaultMarket: 'm1' }],
-        markets: [{ id: 'm1', code: 'nabhold_za', tenant: 't1', legalEntity: 'o1' }],
+        tenants: [{ id: 't1', code: 'nabhold', status: 'active' }],
+        organisations: [{ id: 'o1', code: 'nabhold', tenant: 't1', status: 'active' }],
+        'digital-estates': [{ id: 'e1', code: 'nabhold-corporate', status: 'active', tenant: 't1', defaultMarket: 'm1' }],
+        markets: [{ id: 'm1', code: 'nabhold_za', enabled: true, tenant: 't1', legalEntity: 'o1' }],
       }
     : {};
   let n = 0;
