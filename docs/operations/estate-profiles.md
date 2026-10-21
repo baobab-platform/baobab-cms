@@ -17,6 +17,7 @@ creates no human, workload user, credential, domain, grant or subsidiary.
 Canonical references default explicitly to `UNRESOLVED` in the profile and
 non-authoritative tenant provenance. Payload relationship IDs are local database
 keys, not CP issuance. Unresolved references are omitted from CP identity fields.
+The current CP Market Registry uses opaque `mkt_` identifiers, not UUIDs.
 CP-owned organisation/legal-actor, market and estate fields no longer generate
 UUIDs locally. CMS-owned content identity issuance is unchanged. A future runtime
 must supply identifiers from actual CP issuance and prove them with actual

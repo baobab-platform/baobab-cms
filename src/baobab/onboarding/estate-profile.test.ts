@@ -43,14 +43,15 @@ describe('independently scoped estate profiles', () => {
   it('supports CP-supplied references without deriving IDs from local codes', async () => {
     const { repo, store } = memory();
     const id = '0199a1b2-c3d4-7e8f-9a0b-0000000000a1';
-    const supplied = syntheticEstateProfile(profile.runId, { tenant: 'tn_abc123', organisation: id, legalEntity: id, market: id, digitalEstate: id });
+    const supplied = syntheticEstateProfile(profile.runId, { tenant: 'tn_abc123', organisation: id, legalEntity: id, market: 'mkt_unitfixture', digitalEstate: id });
     expect((await onboardSyntheticEstate(repo, supplied, options)).converged).toBe(true);
     expect(store.tenants[0].controlPlaneTenantId).toBe('tn_abc123');
     expect(store.organisations[0].controlPlaneOrganisationId).toBe(id);
-    expect(store.markets[0].canonicalMarketId).toBe(id);
+    expect(store.markets[0].canonicalMarketId).toBe('mkt_unitfixture');
     expect(store['digital-estates'][0].canonicalDigitalEstateId).toBe(id);
     // These supplied unit values demonstrate copying only, never CP issuance.
     expect(() => syntheticEstateProfile(profile.runId, { tenant: 'nabhold' })).toThrow();
+    expect(() => syntheticEstateProfile(profile.runId, { market: id })).toThrow();
     expect(() => syntheticEstateProfile(profile.runId, { organisation: 'NABHOLD' })).toThrow();
   });
 

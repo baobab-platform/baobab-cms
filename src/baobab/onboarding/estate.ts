@@ -115,9 +115,11 @@ export async function onboardEstate(repo: ProjectionRepository, profile: EstateP
     blockers.push('CONTROL_PLANE_TENANT_ID_INVALID: expected a Control Plane tenant id such as tn_abc123.');
   }
 
-  for (const value of [options.controlPlaneMarketId, options.controlPlaneDigitalEstateId]) {
+  for (const value of [options.controlPlaneDigitalEstateId]) {
     if (value !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) blockers.push('CONTROL_PLANE_REFERENCE_INVALID');
   }
+
+  if (options.controlPlaneMarketId !== undefined && !/^mkt_[a-z0-9]{1,59}$/.test(options.controlPlaneMarketId)) blockers.push('CONTROL_PLANE_MARKET_ID_INVALID');
 
   const report = (): OnboardingReport => ({
     mode: options.mode,

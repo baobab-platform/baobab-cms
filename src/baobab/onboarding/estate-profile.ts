@@ -20,6 +20,8 @@ export interface SyntheticEstateProfile extends EstateProfile {
   readonly canonicalReferences: Readonly<CanonicalReferences>;
   readonly seeds: readonly SeedSpec[];
 }
+// CP Market Registry issues mkt_ identifiers (Shared market/v1), not UUIDs.
+const marketId = /^mkt_[a-z0-9]{1,59}$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function freeze<T>(value: T): T {
   if (value && typeof value === 'object') {
@@ -39,7 +41,7 @@ export function syntheticEstateProfile(runId: string, supplied: Partial<Canonica
     if (!(key in refs)) throw new Error('Unknown canonical reference');
     const name = key as keyof CanonicalReferences;
     const value = supplied[name];
-    if (typeof value !== 'string' || value !== UNRESOLVED && !(name === 'tenant' ? /^tn_[a-z0-9]+$/.test(value) : uuid.test(value))) {
+    if (typeof value !== 'string' || value !== UNRESOLVED && !(name === 'tenant' ? /^tn_[a-z0-9]+$/.test(value) : name === 'market' ? marketId.test(value) : uuid.test(value))) {
       throw new Error('Invalid supplied CP reference');
     }
     refs[name] = value;
