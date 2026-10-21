@@ -35,7 +35,7 @@ const Markets: CollectionConfig = {
     ],
   },
   fields: [
-    canonicalIdField({ name: 'canonicalMarketId', entityType: 'MARKET' }),
+    canonicalIdField({ authority: 'control-plane', name: 'canonicalMarketId', entityType: 'MARKET' }),
     tenantOwnedField(),
     sameTenantRelationshipField({ name: 'legalEntity', relationTo: 'organisations', label: 'Legal entity' }),
     { name: 'name', type: 'text', required: true },

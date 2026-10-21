@@ -33,7 +33,7 @@ const DigitalEstates: CollectionConfig = {
     ],
   },
   fields: [
-    canonicalIdField({ name: 'canonicalDigitalEstateId', entityType: 'DIGITAL_ESTATE' }),
+    canonicalIdField({ authority: 'control-plane', name: 'canonicalDigitalEstateId', entityType: 'DIGITAL_ESTATE' }),
     tenantOwnedField(),
     { name: 'name', type: 'text', required: true },
     { name: 'code', type: 'text', required: true, index: true },

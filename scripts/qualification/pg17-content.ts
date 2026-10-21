@@ -11,6 +11,8 @@ import { SYSTEM_ACTOR } from '../../src/baobab/context/system-actor.js';
 import { onboardNabhold, type ProjectionRepository } from '../../src/baobab/onboarding/nabhold.js';
 import { seedNabholdContent, type ContentSeedRepository } from '../../src/baobab/onboarding/nabhold-content.js';
 
+import { onboardSyntheticEstate, seedSyntheticContent, setSyntheticContentState, syntheticEstateProfile } from '../../src/baobab/onboarding/estate-profile.js';
+
 type Row = Record<string, unknown> & { id: string };
 
 async function main() {
@@ -49,8 +51,8 @@ async function check(payload: Payload, mode: string) {
     (await payload.find({ collection: collection as CollectionSlug, where, limit, depth: 0, overrideAccess: true })).docs as unknown as Row[];
   const repo: ProjectionRepository & ContentSeedRepository = {
     find: (collection, field, value, limit) => find(collection, { [field]: { equals: value } }, limit),
-    findScoped: (collection, tenant, contentKey, kind) => find(collection, { and: [
-      { tenant: { equals: tenant } }, { contentKey: { equals: contentKey } }, ...(kind ? [{ kind: { equals: kind } }] : []),
+    findScoped: (collection, tenant, contentKey, kind, scope) => find(collection, { and: [
+      { tenant: { equals: tenant } }, { contentKey: { equals: contentKey } }, ...(scope ? [{ digitalEstate: { equals: scope.digitalEstateId } }, { locale: { equals: scope.locale } }] : []), ...(kind ? [{ kind: { equals: kind } }] : []),
     ] }, 3),
     create: async (collection, data) => await payload.create({ collection: collection as CollectionSlug,
       data: data as never, user: SYSTEM_ACTOR as never, overrideAccess: true }) as unknown as Row,
@@ -71,6 +73,29 @@ async function check(payload: Payload, mode: string) {
     assert(second.steps.every(s => s.action === 'exists'));
     assert.deepEqual(second.ids, first.ids);
   }
+  const profile = syntheticEstateProfile('0123456789abcdef');
+  if (mode === 'apply') {
+    const original = await find('pages', {}, 10);
+    assert((await onboardSyntheticEstate(repo, profile, { ...options, mode: 'apply' })).converged);
+    assert((await seedSyntheticContent(repo, profile, { ...options, mode: 'apply' })).converged);
+    assert((await seedSyntheticContent(repo, profile, { ...options, mode: 'apply' })).steps.every(s => s.action === 'exists'));
+    for (const state of ['published', 'withdrawn', 'draft'] as const) {
+      const result = await setSyntheticContentState(repo, profile, state, { ...options, mode: 'apply' });
+      assert.equal(result.humanEditorialApproval, false);
+      const seeded = await seedSyntheticContent(repo, profile, { ...options, mode: 'verify' });
+      assert(seeded.converged);
+      const home = await payload.findByID({ collection: 'pages', id: seeded.ids['content-home'], depth: 0, overrideAccess: true });
+      assert.equal(home.status, state === 'withdrawn' ? 'archived' : state);
+      const nav = await payload.findByID({ collection: 'site-configurations', id: seeded.ids['content-navigation'], depth: 0, overrideAccess: true });
+      assert.equal(nav.publicationState, state === 'published' ? 'PUBLISHED' : state === 'withdrawn' ? 'UNPUBLISHED' : 'DRAFT');
+      for (const row of original) assert.deepEqual(await payload.findByID({ collection: 'pages', id: row.id, depth: 0, overrideAccess: true }), row);
+    }
+  }
+  assert((await onboardSyntheticEstate(repo, profile, { ...options, mode: 'verify' })).converged);
+  assert((await seedSyntheticContent(repo, profile, { ...options, mode: 'verify' })).converged);
+  const synthetic = (await find('organisations', { code: { equals: profile.organisationCode } }, 2))[0];
+  assert.equal(synthetic.canonicalLegalEntityId, null);
+  assert.equal(synthetic.controlPlaneOrganisationId, null);
   const seeded = await seedNabholdContent(repo, { ...options, mode: 'verify' });
   assert(seeded.converged);
   const tenants = await find('tenants', { code: { equals: 'nabhold' } }, 2);

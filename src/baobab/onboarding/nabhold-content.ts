@@ -1,3 +1,4 @@
+import type { EstateProfile } from './profiles.js';
 import { NABHOLD, type Mode, type OnboardingReport, type ProjectionRepository, type StepResult } from './nabhold.js';
 
 /**
@@ -16,7 +17,7 @@ import { NABHOLD, type Mode, type OnboardingReport, type ProjectionRepository, t
 
 export interface ContentSeedRepository extends ProjectionRepository {
   /** Records for (tenant, contentKey), plus `kind` for site-configurations. */
-  findScoped(collection: string, tenantId: string, contentKey: string, kind?: string): Promise<Array<Record<string, unknown> & { id: string | number }>>;
+  findScoped(collection: string, tenantId: string, contentKey: string, kind?: string, scope?: { digitalEstateId: string; locale: string }): Promise<Array<Record<string, unknown> & { id: string | number }>>;
 }
 
 const LINKS = {
@@ -75,8 +76,10 @@ export const SEEDS: SeedSpec[] = [
   },
 ];
 
-export async function seedNabholdContent(
+export async function seedEstateContent(
   repo: ContentSeedRepository,
+  profile: EstateProfile,
+  seeds: readonly SeedSpec[],
   options: { mode: Mode; projectionMode: 'local' | 'none'; environment: 'production' | 'non-production' },
 ): Promise<OnboardingReport> {
   const steps: StepResult[] = [];
@@ -106,19 +109,33 @@ export async function seedNabholdContent(
     const rows = await repo.find(collection, field, value, 2);
     return rows.length === 1 ? rows[0] : undefined;
   };
-  const tenant = await one('tenants', 'code', NABHOLD.tenantCode);
-  const org = await one('organisations', 'code', NABHOLD.organisationCode);
-  const estate = await one('digital-estates', 'code', NABHOLD.estateCode);
-  const market = await one('markets', 'code', NABHOLD.marketCode);
+  const tenant = await one('tenants', 'code', profile.tenantCode);
+  const org = await one('organisations', 'code', profile.organisationCode);
+  const estate = await one('digital-estates', 'code', profile.estateCode);
+  const market = await one('markets', 'code', profile.marketCode);
   if (!tenant || !org || !estate || !market) {
     blockers.push('PREREQUISITES_MISSING: run scripts/onboarding/nabhold.ts first (tenant, organisation, market and digital estate must exist once).');
     steps.push({ step: 'prerequisites', collection: '-', action: 'blocked', detail: blockers[0] });
     return done();
   }
 
-  for (const seed of SEEDS) {
+  const relation = (value: unknown) => typeof value === 'object' && value !== null ? String((value as { id?: unknown }).id) : String(value);
+  if ([org, estate, market].some(row => relation(row.tenant) !== String(tenant.id)) ||
+      relation(market.legalEntity) !== String(org.id) || relation(estate.defaultMarket) !== String(market.id)) {
+    blockers.push('PREREQUISITES_WRONG_OWNER: tenant, organisation, market and estate must belong to the same configured graph.');
+    return done();
+  }
+
+  for (const seed of seeds) {
     const step = `content-${seed.contentKey}`;
-    const found = await repo.findScoped(seed.collection, String(tenant.id), seed.contentKey, seed.kind);
+    const found = await repo.findScoped(seed.collection, String(tenant.id), seed.contentKey, seed.kind, { digitalEstateId: String(estate.id), locale: profile.locale });
+    // Check the port's result as well as its query. A faulty persistence adapter
+    // cannot turn a neighbour's row into an owned fixture or editorial update.
+    if (found.some(row => relation(row.tenant) !== String(tenant.id) || relation(row.digitalEstate) !== String(estate.id) ||
+        relation(row.organisation) !== String(org.id) || relation(row.market) !== String(market.id) || row.locale !== profile.locale || row.contentKey !== seed.contentKey || (seed.kind && row.kind !== seed.kind))) {
+      blockers.push('CONTENT_WRONG_OWNER: ' + seed.contentKey);
+      continue;
+    }
     if (found.length > 1) {
       const detail = `DUPLICATE: ${found.length} ${seed.collection} records carry contentKey "${seed.contentKey}"`;
       steps.push({ step, collection: seed.collection, action: 'mismatch', detail });
@@ -148,7 +165,7 @@ export async function seedNabholdContent(
       organisation: org.id,
       digitalEstate: estate.id,
       market: market.id,
-      locale: NABHOLD.locale,
+      locale: profile.locale,
       contentScope: 'DIGITAL_ESTATE',
     });
     ids[step] = String(created.id);
@@ -156,3 +173,7 @@ export async function seedNabholdContent(
   }
   return done();
 }
+
+/** Nabhold remains DRAFT-only; the synthetic fixture controller is separate. */
+export const seedNabholdContent = (repo: ContentSeedRepository, options: Parameters<typeof seedEstateContent>[3]) =>
+  seedEstateContent(repo, NABHOLD, SEEDS, options);

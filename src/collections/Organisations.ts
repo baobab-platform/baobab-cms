@@ -35,7 +35,7 @@ const Organisations: CollectionConfig = {
     ],
   },
   fields: [
-    canonicalIdField({ name: 'canonicalLegalEntityId', entityType: 'LEGAL_ENTITY' }),
+    canonicalIdField({ authority: 'control-plane', name: 'canonicalLegalEntityId', entityType: 'LEGAL_ENTITY' }),
     tenantOwnedField(),
     {
       name: 'controlPlaneOrganisationId',
