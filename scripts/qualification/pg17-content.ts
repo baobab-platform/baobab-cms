@@ -30,17 +30,22 @@ async function main() {
   assert(!process.env.S3_ENDPOINT && !process.env.S3_BUCKET && !process.env.BAOBAB_IAM_OIDC_ISSUER);
   const { default: config } = await import('../../payload.config.js');
   const payload = await getPayload({ config });
+  const pool = (payload.db as unknown as PostgresAdapter).pool;
   try {
-    const version = await (payload.db as unknown as PostgresAdapter).pool.query('SHOW server_version_num');
+    const version = await pool.query('SHOW server_version_num');
     assert.equal(Math.floor(Number(version.rows[0].server_version_num) / 10000), 17);
     await check(payload, mode);
+  } finally {
+    await payload.destroy();
+    // Payload's Drizzle destroy clears schema state but does not close the pg
+    // pool. Explicitly release it before publishing any successful observation.
+    await pool.end();
+  }
     console.log(JSON.stringify({ schema: 'cms.pg17.component-check.v1', mode, passed: true,
       evidence_class: 'COMPONENT_SYNTHETIC_DATA', live_iam_cp_proven: false,
       cms_provider_qualified: false, full_int03_accepted: false, production_authorized: false }));
-  } finally {
-    await payload.destroy();
-  }
 }
+
 
 async function check(payload: Payload, mode: string) {
   const find = async (collection: string, where: Where, limit: number) =>
