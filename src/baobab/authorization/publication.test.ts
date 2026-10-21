@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import Pages from '../../collections/Pages.js';
 import Users from '../../collections/Users.js';
 import SiteConfigurations from '../../collections/SiteConfigurations.js';
 import PortfolioCompanies from '../../collections/PortfolioCompanies.js';
@@ -111,8 +112,8 @@ describe('wiring', () => {
 });
 
 
-describe('createPublicationGuard for pages (transitional)', () => {
-  const guard = createPublicationGuard({ stateField: 'status', readState: asPageState, transitional: true });
+describe('createPublicationGuard for pages', () => {
+  const guard = createPublicationGuard({ stateField: 'status', readState: asPageState });
   const change = (user: U | null, operation: 'create' | 'update', data: Record<string, unknown>, originalDoc?: Record<string, unknown>) => () =>
     guard.beforeChange({ data, originalDoc, operation, req: req(user), collection: {} as never, context: {} as never });
 
@@ -137,9 +138,22 @@ describe('createPublicationGuard for pages (transitional)', () => {
     expect(change(actor(['EDITOR']), 'update', { status: 'draft' }, { status: 'published' })).toThrow(PublicationDeniedError);
   });
 
-  it('leaves a legacy editor with no editorial roles on the access layer only (documented transitional gap)', () => {
-    const legacy = actor([]);
-    expect(change(legacy, 'update', { status: 'published' }, { status: 'draft' })).not.toThrow();
+  it('denies role-less legacy users on every mutation, including implicit live edits', () => {
+    for (const user of [actor([]), actor(['UNRECOGNISED'])]) {
+      expect(change(user, 'create', { status: 'draft' })).toThrow(PublicationDeniedError);
+      expect(change(user, 'update', { status: 'published' }, { status: 'draft' })).toThrow(PublicationDeniedError);
+      expect(change(user, 'update', { title: 'changed' }, { status: 'published' })).toThrow(PublicationDeniedError);
+      expect(change(user, 'update', { status: 'draft' }, { status: 'published' })).toThrow(PublicationDeniedError);
+    }
+  });
+
+  it('denies role-less deletion through the actual Pages hook', async () => {
+    const hook = Pages.hooks!.beforeDelete![0];
+    const request = { user: actor([]), headers: new Headers(), payload: {
+      findByID: async () => ({ status: 'published', digitalEstate: 'estate-1' }),
+    } };
+    await expect(hook({ id: 'page-1', req: request, collection: { slug: 'pages' } } as never))
+      .rejects.toThrow(PublicationDeniedError);
   });
 
   it('still denies an unauthenticated actor and passes a platform administrator', () => {
@@ -147,7 +161,7 @@ describe('createPublicationGuard for pages (transitional)', () => {
     expect(change(actor([], { platformAdministrator: true }), 'update', { status: 'published' }, { status: 'draft' })).not.toThrow();
   });
 
-  it('is strict once transitional is off', () => {
+  it('uses the same strict default for every page guard', () => {
     const strict = createPublicationGuard({ stateField: 'status', readState: asPageState });
     expect(() =>
       strict.beforeChange({ data: { status: 'published' }, originalDoc: { status: 'draft' }, operation: 'update', req: req(actor([])), collection: {} as never, context: {} as never }),

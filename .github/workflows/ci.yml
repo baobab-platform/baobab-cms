@@ -56,24 +56,27 @@ jobs:
 
   migration-check:
     name: Migration gate (ADR-0019 §96)
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
         env:
-          POSTGRES_DB: payload
+          POSTGRES_DB: cms_pg17_qualification
           POSTGRES_USER: payload
           POSTGRES_PASSWORD: payload
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U payload -d payload"
+          --health-cmd "pg_isready -U payload -d cms_pg17_qualification"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://payload:payload@localhost:5432/payload
+      DATABASE_URL: postgresql://payload:payload@localhost:5432/cms_pg17_qualification
       PAYLOAD_SECRET: ci-migration-check-secret
+      BAOBAB_ENVIRONMENT: ci
+      CMS_PG17_COMPONENT_QUALIFICATION: synthetic-disposable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -82,9 +85,15 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Create payload schema
-        run: PGPASSWORD=payload psql -h localhost -U payload -d payload -c "CREATE SCHEMA IF NOT EXISTS payload AUTHORIZATION payload;"
+        run: PGPASSWORD=payload psql -h localhost -U payload -d cms_pg17_qualification -c "CREATE SCHEMA IF NOT EXISTS payload AUTHORIZATION payload;"
       - name: Apply all committed migrations to a fresh database
         run: npm run db:migrate
+      - name: Exercise real PG17 content persistence and publication guards
+        timeout-minutes: 3
+        run: npx tsx scripts/qualification/pg17-content.ts apply
+      - name: Verify persisted content from a separate Payload process
+        timeout-minutes: 3
+        run: npx tsx scripts/qualification/pg17-content.ts verify
       - name: Reconciliation smoke check
         run: npm run reconcile
 

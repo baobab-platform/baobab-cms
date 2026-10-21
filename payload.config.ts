@@ -37,6 +37,9 @@ export default buildConfig({
   },
   editor: lexicalEditor(),
   db: postgresAdapter({
+    // ADR-0019: only reviewed migrations may change database structure.
+    // Automatic development push can mask missing migrations during qualification.
+    push: false,
     pool: {
       connectionString:
         process.env.DATABASE_URL || 'postgresql://payload:payload@postgres:5432/payload',
