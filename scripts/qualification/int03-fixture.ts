@@ -30,8 +30,12 @@ async function main() {
     const states: Record<string, string> = {};
     for (const seed of profile.seeds) {
       const doc = await payload.findByID({ collection: seed.collection, id: seeded.ids['content-' + seed.contentKey], depth: 0, overrideAccess: true });
-      assert(isDeepStrictEqual(contentDataForKey(seed.contentKey, doc as unknown as Record<string, unknown>), contentDataForKey(seed.contentKey, seed.fields)));
-      states[seed.contentKey] = String('status' in doc ? doc.status : doc.publicationState);
+      const record = doc as unknown as Record<string, unknown>;
+      assert(isDeepStrictEqual(contentDataForKey(seed.contentKey, record), contentDataForKey(seed.contentKey, seed.fields)));
+      const state = record[seed.collection === 'pages' ? 'status' : 'publicationState'];
+      assert(typeof state === 'string' && (seed.collection === 'pages'
+        ? ['draft', 'published', 'archived'] : ['DRAFT', 'PUBLISHED', 'UNPUBLISHED', 'ARCHIVED']).includes(state));
+      states[seed.contentKey] = state;
     }
     return { schema: 'cms.int03.fixture.v1', run_id: runId, action, converged: true,
       database_version_num: Number(version.rows[0].server_version_num), states,
