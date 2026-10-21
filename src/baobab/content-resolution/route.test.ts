@@ -1,3 +1,4 @@
+import { missingBearerResponse } from './route.js';
 import { describe, expect, it, vi } from 'vitest';
 import { handleContentResolveRoute, type ContentRouteDependencies, type RouteRequest } from './route.js';
 import { createControlPlaneContextValidator } from './control-plane-context.js';
@@ -350,5 +351,20 @@ describe('projection exact identity acceptance', () => {
         .mockResolvedValueOnce({ docs: [{ status: 'active', controlPlaneOrganisationId: stored }] });
       expect(await createPayloadProjectionValidator({ find })(TENANT, ORG)).toBe(false);
     }
+  });
+});
+
+
+describe('early anonymous denial', () => {
+  it('denies absent/malformed authentication without a validator credential or dependency', () => {
+    for (const authorization of [null, '', 'Basic hidden', 'Bearer', 'Bearer token extra', 'Bearer token\n']) {
+      const result = missingBearerResponse({ authorization, correlationId: 'untrusted' }, () => 'fixed-correlation');
+      expect(result?.status).toBe(401);
+      expect(result?.headers['cache-control']).toBe('no-store');
+      expect(result?.body).toMatchObject({ code: 'AUTHENTICATION_REQUIRED', correlation_id: 'fixed-correlation' });
+      expect(JSON.stringify(result)).not.toContain('hidden');
+    }
+    // A syntactically present token still needs the real verifier and CP path.
+    expect(missingBearerResponse({ authorization: 'Bearer unverified' }, () => 'fixed')).toBeNull();
   });
 });

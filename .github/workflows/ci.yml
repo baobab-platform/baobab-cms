@@ -96,6 +96,21 @@ jobs:
         run: npx tsx scripts/qualification/pg17-content.ts verify
       - name: Reconciliation smoke check
         run: npm run reconcile
+      - name: Exercise disposable provider fixture CLI against actual PG17
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          set +x
+          export CMS_INT03_RUN_ID=0123456789abcdef
+          export CMS_INT03_FIXTURE=synthetic-disposable
+          export PAYLOAD_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(48).toString("hex"))')"
+          export DATABASE_URL=postgresql://payload:payload@localhost:5432/cms_int03_0123456789abcdef
+          PGPASSWORD=payload createdb -h localhost -U payload cms_int03_0123456789abcdef
+          PGPASSWORD=payload psql -h localhost -U payload -d cms_int03_0123456789abcdef -v ON_ERROR_STOP=1 -c "CREATE SCHEMA payload AUTHORIZATION payload;"
+          npm run db:migrate
+          for action in seed seed verify publish withdraw draft verify; do
+            node --import tsx scripts/qualification/int03-fixture.ts "$action"
+          done
 
   dependency-review:
     name: Dependency review
