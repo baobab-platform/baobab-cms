@@ -55,3 +55,28 @@ purge or audit-retention bypass.
 The Shared registry activation hold is unchanged. Real IAM/CP/CMS connected
 qualification, all fourteen NAB-03 cases, full INT-03, protected native IAM–CP,
 executive authority, staging, production and R0–R3 remain open.
+
+## INT-03 provider fixture CLI
+
+`scripts/qualification/int03-provider-fixture.ts` is the CMS-owned entry point
+that the Infrastructure INT-03 CMS provider runs from the image's `build`
+stage (the stage that already owns `db:migrate`). The runtime image is
+unchanged and still ships no scripts.
+
+| Command | Effect |
+| --- | --- |
+| `apply` | fresh database only: Nabhold draft estate as the neighbour (without its local workload user), then the synthetic estate, seeded twice to prove idempotency, and published |
+| `state published\|withdrawn\|draft` | `setSyntheticContentState`, proving every Nabhold page and site configuration row unchanged |
+| `verify published\|withdrawn\|draft` | separate-process re-read: all five fixtures in that state, CP references still unresolved, Nabhold still draft-only |
+
+`providerRun` (`src/baobab/onboarding/int03-provider-boundary.ts`) refuses
+before Payload config loads unless `CMS_INT03_PROVIDER=synthetic-disposable`,
+`BAOBAB_ENVIRONMENT=development`, `NODE_ENV` is not production, a 16-hex
+`CMS_INT03_RUN_ID` names the database `cms_int03_<run id>`, the host is
+loopback or a single-label container name, and no object store or SSO is
+configured. Only fixed codes leave the process. The receipt says
+`CMS_OWNED_DISPOSABLE_FIXTURE`, `human_editorial_approval: false` and
+`connected_qualification: false`. It creates no principal, credential, grant
+or domain. The provider owns teardown of the database.
+
+The migration CI job runs the whole lifecycle on a second fresh database.

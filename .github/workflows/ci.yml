@@ -96,6 +96,29 @@ jobs:
         run: npx tsx scripts/qualification/pg17-content.ts verify
       - name: Reconciliation smoke check
         run: npm run reconcile
+      # The INT-03 provider's fixture CLI on its own fresh database: Nabhold as
+      # the unchanged draft neighbour, then each fixture state, re-verified from
+      # a separate Payload process. Infrastructure's provider runs the same CLI.
+      - name: Exercise the INT-03 provider fixture lifecycle
+        timeout-minutes: 8
+        env:
+          BAOBAB_ENVIRONMENT: development
+          CMS_INT03_PROVIDER: synthetic-disposable
+        run: |
+          run_id=$(openssl rand -hex 8)
+          export CMS_INT03_RUN_ID=$run_id
+          export DATABASE_URL=postgresql://payload:payload@localhost:5432/cms_int03_$run_id
+          PGPASSWORD=payload psql -h localhost -U payload -d cms_pg17_qualification -c "CREATE DATABASE cms_int03_$run_id;"
+          PGPASSWORD=payload psql -h localhost -U payload -d "cms_int03_$run_id" -c "CREATE SCHEMA payload AUTHORIZATION payload;"
+          npm run db:migrate
+          fixture="npx tsx scripts/qualification/int03-provider-fixture.ts"
+          $fixture apply
+          $fixture verify published
+          for state in withdrawn draft published; do
+            $fixture state "$state"
+            $fixture verify "$state"
+          done
+          if $fixture apply; then echo "a seeded database must refuse apply"; exit 1; fi
 
   dependency-review:
     name: Dependency review
