@@ -5,7 +5,7 @@ Not production-activated; human editors cannot sign in to production until IAM f
 
 ## What is enforced
 
-Applies to `site-configurations`, `portfolio-companies`, `sectors` and `insights`
+Applies to `pages`, `site-configurations`, `portfolio-companies`, `sectors` and `insights`
 (`src/baobab/authorization/publication.ts`, hooks on every write and delete):
 
 | Change | Needs |
@@ -35,11 +35,8 @@ Preview is not an editor feature of this API. A caller sees DRAFT content only t
 
 ## Not done, by decision or dependency
 
-- `pages` is guarded in a **transitional** mode (expand step of ADR-0019): an editor who has editorial roles is fully enforced,
-  and a platform administrator and the system actor pass, but a non-administrator with **no** editorial roles is not role-checked
-  and keeps the access layer's behaviour. That is a known, temporary gap, not a finished control. To close it, give every existing
-  editor editorial roles, then remove `transitional: true` in `src/collections/Pages.ts` (the contract step). `product-content` is
-  not guarded yet and needs the same plan (it also has a `REVIEW` state that the guard does not yet treat).
+- Pages now deny role-less and unknown-role users on all mutations, including legacy accounts. No migration auto-assigns roles or publishing authority. Existing editors must receive explicitly reviewed roles through the owning identity/projection workflow before they can edit again.
+- `product-content` is not guarded yet and needs its own plan (including its REVIEW state); it is outside the Nabhold institutional content profile.
 - REVIEWER holds `review` but there is no review state, so review is advisory. Four-eyes approval (publisher differs from last editor)
   and legal sign-off before publishing group-profile or legal notices need a sponsor decision, a state and a migration.
 - Mapping IAM groups to editorial roles is IAM's to define; nothing here assumes group names.

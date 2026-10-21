@@ -34,7 +34,7 @@ services:
       - /app/.next
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     container_name: baobab-postgres
     environment:
       POSTGRES_DB: payload
@@ -43,7 +43,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres17_data:/var/lib/postgresql/data
       # Payload's postgres adapter uses a non-default schema (ADR-0020
       # §19-25) and expects it to already exist.
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -99,5 +99,5 @@ services:
       "
 
 volumes:
-  postgres_data:
+  postgres17_data:
   minio_data:

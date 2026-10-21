@@ -7,8 +7,9 @@ import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/ev
 import { CanonicalEventType } from '../baobab/events/types.js';
 import { asPageState, createPublicationGuard } from '../baobab/authorization/publication.js';
 
-/** Transitional (ADR-0019 expand step): editors with editorial roles are enforced; legacy editors with none are not yet. */
-const pageGuard = createPublicationGuard({ stateField: 'status', readState: asPageState, transitional: true });
+/** Publishing always requires explicit editorial authority, including legacy users.
+ * Do not infer a role from an existing account or content.management alone. */
+const pageGuard = createPublicationGuard({ stateField: 'status', readState: asPageState });
 
 type PageStatus = 'draft' | 'published' | 'archived';
 
