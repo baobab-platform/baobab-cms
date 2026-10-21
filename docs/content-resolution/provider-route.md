@@ -100,6 +100,13 @@ accepted `baobab-int03-cms-validator`, environment `development`, CP audience an
 administration permissions, and is not the Nabhold caller. CP still validates
 the caller's actual token and current same-Principal context independently.
 
+Token acquisition and introspection use `client_secret_post`, matching IAM's
+maintained Hydra WorkloadProvisioner (`internal/provider/ory/hydra.go`). The
+exact validator's independent credentials appear once in the bounded HTTPS
+request body, never in a URL or an additional Basic header. No method fallback
+or substitute client is selected. Protocol tests exercise the maintained OAuth
+library's wire contract, not actual IAM issuance or connected qualification.
+
 Required server-only inputs are `CMS_WORKLOAD_ENVIRONMENT=development`,
 `CMS_WORKLOAD_CLIENT_ID=baobab-int03-cms-validator`, a distinct per-run
 `CMS_WORKLOAD_CLIENT_SECRET` of at least 32 characters, reviewed HTTPS

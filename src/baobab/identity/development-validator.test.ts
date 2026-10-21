@@ -16,10 +16,11 @@ function fixture() {
   let count = 0;
   const fetcher = vi.fn<typeof fetch>(async (input, init) => {
     expect(init?.redirect).toBe('error'); expect(init?.cache).toBe('no-store');
-    const basic = new Headers(init?.headers).get('authorization')!;
-    expect(Buffer.from(basic.slice(6), 'base64').toString().split(':').map(s => decodeURIComponent(s))).toEqual([
-      env.CMS_WORKLOAD_CLIENT_ID, env.CMS_WORKLOAD_CLIENT_SECRET,
-    ]);
+    expect(new Headers(init?.headers).has('authorization')).toBe(false);
+    const credentials = new URLSearchParams(String(init?.body));
+    expect(credentials.getAll('client_id')).toEqual([env.CMS_WORKLOAD_CLIENT_ID]);
+    expect(credentials.getAll('client_secret')).toEqual([env.CMS_WORKLOAD_CLIENT_SECRET]);
+    expect(new URL(String(input)).search).toBe('');
     if (state.fail) return Response.json({ secret: 'must not escape' }, { status: 503 });
     if (state.oversized) return Response.json({ padding: 'x'.repeat(65536) });
     const body = new URLSearchParams(String(init?.body));

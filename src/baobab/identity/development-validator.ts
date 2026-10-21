@@ -79,7 +79,9 @@ export function createDevelopmentValidatorTokens(
     const deadline = Date.parse(deadlineText);
     if (!Number.isFinite(deadline) || deadline <= Date.now() || deadline > Date.now() + 90 * 60_000) throw new Error();
     const config = new oauth.Configuration({ issuer, token_endpoint: tokenEndpoint, introspection_endpoint: introspectionEndpoint },
-      CLIENT, undefined, oauth.ClientSecretBasic(secret));
+      // IAM's maintained Hydra WorkloadProvisioner selects client_secret_post.
+      // Use that exact method without fallback or a borrowed client identity.
+      CLIENT, undefined, oauth.ClientSecretPost(secret));
     const bounded = transport([tokenEndpoint, introspectionEndpoint], fetcher);
     config[oauth.customFetch] = (url, options) => bounded(url, { ...options,
       body: options.body instanceof Uint8Array ? Buffer.from(options.body) : options.body });
