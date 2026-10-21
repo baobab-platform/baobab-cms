@@ -37,13 +37,10 @@ async function main() {
     await check(payload, mode);
   } finally {
     await payload.destroy();
-    // Payload's Drizzle destroy clears schema state but does not close the pg
-    // pool. Explicitly release it before publishing any successful observation.
-    await pool.end();
   }
-    console.log(JSON.stringify({ schema: 'cms.pg17.component-check.v1', mode, passed: true,
-      evidence_class: 'COMPONENT_SYNTHETIC_DATA', live_iam_cp_proven: false,
-      cms_provider_qualified: false, full_int03_accepted: false, production_authorized: false }));
+  return { schema: 'cms.pg17.component-check.v1', mode, passed: true,
+    evidence_class: 'COMPONENT_SYNTHETIC_DATA', live_iam_cp_proven: false,
+    cms_provider_qualified: false, full_int03_accepted: false, production_authorized: false };
 }
 
 
@@ -104,9 +101,13 @@ async function check(payload: Payload, mode: string) {
   assert.equal(reread.updatedAt, home.updatedAt);
 }
 
-main().catch(() => {
-  // Raw Payload errors may contain records or connection data. Export only a
-  // fixed failure marker, and let CI's exit status withhold component evidence.
-  console.error('CMS_PG17_COMPONENT_CHECK_FAILED');
-  process.exitCode = 1;
-});
+// Like the repository's other standalone Payload CLIs, terminate after awaited
+// Payload cleanup. The adapter retains a dedicated reconnect-monitor connection;
+// pool.end() would wait forever for that deliberately checked-out client. Process
+// exit closes its sockets; CI separately destroys the disposable database service.
+// Flush the bounded result first; no PASS is exported before all assertions and
+// Payload destroy complete. A failed write or assertion exits nonzero.
+main().then(
+  receipt => process.stdout.write(JSON.stringify(receipt) + '\n', error => process.exit(error ? 1 : 0)),
+  () => process.stderr.write('CMS_PG17_COMPONENT_CHECK_FAILED\n', () => process.exit(1)),
+);
