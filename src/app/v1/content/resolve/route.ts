@@ -4,7 +4,7 @@ import config from '../../../../../payload.config.js';
 import { createCallerAuthenticator } from '../../../../baobab/content-resolution/caller-auth.js';
 import { createControlPlaneContextValidator } from '../../../../baobab/content-resolution/control-plane-context.js';
 import { createPayloadContentSource, createPayloadProjectionValidator } from '../../../../baobab/content-resolution/payload-source.js';
-import { handleContentResolveRoute, MAX_BODY_BYTES } from '../../../../baobab/content-resolution/route.js';
+import { handleContentResolveRoute, MAX_BODY_BYTES, missingBearerResponse } from '../../../../baobab/content-resolution/route.js';
 import { createDevelopmentValidatorTokens } from '../../../../baobab/identity/development-validator.js';
 import type { ValidatorTokenProvider } from '../../../../baobab/content-resolution/control-plane-context.js';
 
@@ -21,6 +21,10 @@ export const dynamic = 'force-dynamic';
 const env = (name: string): string | undefined => process.env[name] || undefined;
 
 export async function POST(request: Request): Promise<Response> {
+  const unauthenticated = missingBearerResponse({ authorization: request.headers.get('authorization'),
+    correlationId: request.headers.get('x-correlation-id'), traceparent: request.headers.get('traceparent') }, randomUUID);
+  if (unauthenticated) return new Response(JSON.stringify(unauthenticated.body), { status: unauthenticated.status, headers: unauthenticated.headers });
+
   const issuer = env('CMS_TOKEN_ISSUER');
   const audience = env('CMS_TOKEN_AUDIENCE');
   const jwksUrl = env('CMS_TOKEN_JWKS_URL');

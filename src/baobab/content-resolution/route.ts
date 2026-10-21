@@ -115,6 +115,21 @@ function fromOutcome(outcome: ContentResolveOutcome, preview: boolean): RouteRes
   };
 }
 
+/** Reject syntactically absent authentication before dependency setup. This
+ * proves no token valid and performs no network/database I/O. The Next adapter
+ * uses it while the registry is held, without inventing a validator credential. */
+export function missingBearerResponse(request: Pick<RouteRequest, 'authorization' | 'correlationId' | 'traceparent'>,
+  newCorrelationId: () => string): RouteResponse | null {
+  if (bearerToken(request.authorization)) return null;
+  const correlation = request.correlationId && UUID.test(request.correlationId) ? request.correlationId : newCorrelationId();
+  const traceId = request.traceparent && TRACEPARENT.test(request.traceparent) ? request.traceparent.split('-')[1] : undefined;
+  return problemResponse(correlation, 401, 'authentication-required', 'AUTHENTICATION_REQUIRED', 'Authentication required',
+    'A valid workload token is required.', false, traceId);
+}
+function bearerToken(authorization?: string | null): string | undefined {
+  return /^Bearer ([A-Za-z0-9._~+/-]+=*)$/.exec(authorization ?? '')?.[1];
+}
+
 export async function handleContentResolveRoute(
   request: RouteRequest,
   deps: ContentRouteDependencies,
@@ -127,8 +142,7 @@ export async function handleContentResolveRoute(
     problemResponse(correlationId, status, slug, code, title, detail, retryable, traceId);
 
   // 1. Authenticate.
-  const match = /^Bearer ([A-Za-z0-9._~+/-]+=*)$/.exec(request.authorization ?? '');
-  const token = match?.[1];
+  const token = bearerToken(request.authorization);
   const caller = token ? await deps.authenticate(token) : null;
   if (!token || !caller) {
     return fail(401, 'authentication-required', 'AUTHENTICATION_REQUIRED', 'Authentication required', 'A valid workload token is required.');

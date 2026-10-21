@@ -13,9 +13,20 @@ it.each(['', 'typo', 'development-proof'])('never falls back to a fixed product 
   vi.stubEnv('CMS_TOKEN_AUDIENCE', 'baobab-cms');
   vi.stubEnv('CMS_TOKEN_JWKS_URL', 'https://iam.example.test/jwks');
   vi.stubEnv('CONTROL_PLANE_URL', 'https://cp.example.test');
-  const response = await POST(new Request('https://cms.example.test/v1/content/resolve', { method: 'POST', body: '{}' }));
+  const response = await POST(new Request('https://cms.example.test/v1/content/resolve', { method: 'POST', headers: { authorization: 'Bearer unverified' }, body: '{}' }));
   expect(response.status).toBe(503);
   expect(response.headers.get('cache-control')).toBe('no-store');
   expect(await response.text()).not.toContain('synthetic-borrowed');
+  expect(getPayload).not.toHaveBeenCalled();
+});
+
+
+it.each([undefined, 'Basic hidden', 'Bearer token extra'])('denies anonymous or malformed auth before configuration/database: %s', async authorization => {
+  vi.stubEnv('CMS_CONTEXT_VALIDATOR_MODE', 'invalid');
+  const response = await POST(new Request('https://cms.example.test/v1/content/resolve', {
+    method: 'POST', headers: authorization ? { authorization } : {}, body: '{}',
+  }));
+  expect(response.status).toBe(401);
+  expect(await response.json()).toMatchObject({ code: 'AUTHENTICATION_REQUIRED' });
   expect(getPayload).not.toHaveBeenCalled();
 });

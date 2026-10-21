@@ -7,11 +7,12 @@ import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { PostgresAdapter } from '@payloadcms/db-postgres';
 import { getPayload, type CollectionSlug, type Payload, type Where } from 'payload';
-import { SYSTEM_ACTOR } from '../../src/baobab/context/system-actor.js';
-import { onboardNabhold, type ProjectionRepository } from '../../src/baobab/onboarding/nabhold.js';
-import { seedNabholdContent, type ContentSeedRepository } from '../../src/baobab/onboarding/nabhold-content.js';
+import { onboardNabhold } from '../../src/baobab/onboarding/nabhold.js';
+import { seedNabholdContent } from '../../src/baobab/onboarding/nabhold-content.js';
 
 import { onboardSyntheticEstate, seedSyntheticContent, setSyntheticContentState, syntheticEstateProfile } from '../../src/baobab/onboarding/estate-profile.js';
+
+import { createPayloadEstateRepository } from '../../src/baobab/onboarding/payload-repository.js';
 
 type Row = Record<string, unknown> & { id: string };
 
@@ -49,16 +50,7 @@ async function main() {
 async function check(payload: Payload, mode: string) {
   const find = async (collection: string, where: Where, limit: number) =>
     (await payload.find({ collection: collection as CollectionSlug, where, limit, depth: 0, overrideAccess: true })).docs as unknown as Row[];
-  const repo: ProjectionRepository & ContentSeedRepository = {
-    find: (collection, field, value, limit) => find(collection, { [field]: { equals: value } }, limit),
-    findScoped: (collection, tenant, contentKey, kind, scope) => find(collection, { and: [
-      { tenant: { equals: tenant } }, { contentKey: { equals: contentKey } }, ...(scope ? [{ digitalEstate: { equals: scope.digitalEstateId } }, { locale: { equals: scope.locale } }] : []), ...(kind ? [{ kind: { equals: kind } }] : []),
-    ] }, 3),
-    create: async (collection, data) => await payload.create({ collection: collection as CollectionSlug,
-      data: data as never, user: SYSTEM_ACTOR as never, overrideAccess: true }) as unknown as Row,
-    update: async (collection, id, data) => await payload.update({ collection: collection as CollectionSlug,
-      id, data: data as never, user: SYSTEM_ACTOR as never, overrideAccess: true }) as unknown as Row,
-  };
+  const repo = createPayloadEstateRepository(payload);
   const options = { environment: 'non-production' as const, projectionMode: 'local' as const };
   if (mode === 'apply') {
     // A reused or previously seeded database cannot claim the fresh-migration case.
