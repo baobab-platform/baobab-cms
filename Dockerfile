@@ -6,7 +6,7 @@
 # deployment step, using the `build` stage or CI, which still has the full
 # toolchain). See docs/operations/runbooks.md for the deploy sequence.
 
-FROM node:22.23.3-alpine3.24 AS base
+FROM node:24.21.0-alpine3.24 AS base
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 

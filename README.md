@@ -27,7 +27,7 @@ Engine per `docs/adr/ADR-0011` through `ADR-0020`.
 
 ## Local development
 
-Prereqs: Node 22 (the version CI and the container image use), Docker (for Postgres/RabbitMQ/MinIO), or point
+Prereqs: Node 24 LTS and npm 11 (CI and the container image use Node 24.21.0), Docker (for Postgres/RabbitMQ/MinIO), or point
 `DATABASE_URL`/`RABBITMQ_URL`/`S3_*` at your own instances.
 
 ```bash
