@@ -131,6 +131,14 @@ function dataFor(source: Source, doc: Record<string, unknown>): Record<string, u
   return out;
 }
 
+/** The exact CMS delivery projection, also used to verify disposable fixtures.
+ * Reusing it keeps fixture checks aligned with what a consumer can read. */
+export function contentDataForKey(contentKey: string, doc: Record<string, unknown>): Record<string, unknown> {
+  const source = CONTENT_SOURCES[contentKey];
+  if (!source) throw new Error('Unknown content key');
+  return dataFor(source, doc);
+}
+
 export function createPayloadContentSource(payload: PayloadFind): ContentResolveDependencies {
   return {
     policyFor: (contentKey) => CONTENT_SOURCES[contentKey]?.policy,

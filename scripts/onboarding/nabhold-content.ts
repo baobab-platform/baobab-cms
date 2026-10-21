@@ -38,8 +38,8 @@ async function main(): Promise<number> {
     >;
   const repo: ContentSeedRepository = {
     find: (collection, field, value, limit) => find(collection, { [field]: { equals: value } }, limit),
-    findScoped: (collection, tenantId, contentKey, kind) =>
-      find(collection, { and: [{ tenant: { equals: tenantId } }, { contentKey: { equals: contentKey } }, ...(kind ? [{ kind: { equals: kind } }] : [])] }, 3),
+    findScoped: (collection, tenantId, contentKey, kind, scope) =>
+      find(collection, { and: [{ tenant: { equals: tenantId } }, { contentKey: { equals: contentKey } }, ...(scope ? [{ digitalEstate: { equals: scope.digitalEstateId } }, { locale: { equals: scope.locale } }] : []), ...(kind ? [{ kind: { equals: kind } }] : [])] }, 3),
     create: async (collection, data) =>
       (await payload.create({ collection: collection as 'pages', data: data as never, user: SYSTEM_ACTOR as never, overrideAccess: true })) as never,
     update: async () => {

@@ -7,10 +7,10 @@ type Row = Record<string, unknown> & { id: string };
 function repoWith(prereq = true) {
   const store: Record<string, Row[]> = prereq
     ? {
-        tenants: [{ id: 't1', code: 'nabhold' }],
-        organisations: [{ id: 'o1', code: 'nabhold' }],
-        'digital-estates': [{ id: 'e1', code: 'nabhold-corporate' }],
-        markets: [{ id: 'm1', code: 'nabhold_za' }],
+        tenants: [{ id: 't1', code: 'nabhold', status: 'active' }],
+        organisations: [{ id: 'o1', code: 'nabhold', tenant: 't1', status: 'active' }],
+        'digital-estates': [{ id: 'e1', code: 'nabhold-corporate', status: 'active', tenant: 't1', defaultMarket: 'm1' }],
+        markets: [{ id: 'm1', code: 'nabhold_za', enabled: true, tenant: 't1', legalEntity: 'o1' }],
       }
     : {};
   let n = 0;
@@ -18,8 +18,8 @@ function repoWith(prereq = true) {
     async find(c, f, v, limit) {
       return (store[c] ?? []).filter((r) => String(r[f]) === v).slice(0, limit);
     },
-    async findScoped(c, tenantId, key, kind) {
-      return (store[c] ?? []).filter((r) => r.tenant === tenantId && r.contentKey === key && (!kind || r.kind === kind));
+    async findScoped(c, tenantId, key, kind, scope) {
+      return (store[c] ?? []).filter((r) => r.tenant === tenantId && r.contentKey === key && (!kind || r.kind === kind) && (!scope || r.digitalEstate === scope.digitalEstateId && r.locale === scope.locale));
     },
     async create(c, data) {
       const row = { ...data, id: `c${++n}` } as Row;
