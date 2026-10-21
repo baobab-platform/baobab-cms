@@ -165,7 +165,7 @@ describe('independently scoped estate profiles', () => {
   });
 
   it('never labels altered editorial data as a CMS-owned publication fixture', async () => {
-    for (const changed of ['title', 'introduction', 'content', 'navigation', 'footer', 'scope', 'effective'] as const) {
+    for (const changed of ['title', 'introduction', 'content', 'navigation', 'footer', 'scope', 'effective', 'seo', 'visibility'] as const) {
       const { repo, store } = memory();
       await onboardSyntheticEstate(repo, profile, options);
       await seedSyntheticContent(repo, profile, options);
@@ -173,6 +173,8 @@ describe('independently scoped estate profiles', () => {
       if (changed === 'introduction') store.pages[0].introduction = 'Editor amendment';
       if (changed === 'content') store.pages[0].content = { root: { children: [{ text: 'Editor story' }] } };
       if (changed === 'navigation') store['site-configurations'][0].navigationItems = [{ label: 'Editor route', href: '/edited' }];
+      if (changed === 'seo') store['site-configurations'][0].seo = { robots: { index: false, follow: true } };
+      if (changed === 'visibility') store['site-configurations'][0].visibility = 'board';
       if (changed === 'footer') store['site-configurations'][1].tagline = 'Editor addition';
       if (changed === 'scope') store.pages[0].contentScope = 'TENANT';
       if (changed === 'effective') store.pages[0].effectiveFrom = '2026-10-21T00:00:00Z';

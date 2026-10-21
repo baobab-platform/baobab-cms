@@ -39,7 +39,7 @@ export function syntheticEstateProfile(runId: string, supplied: Partial<Canonica
   const refs: CanonicalReferences = { tenant: UNRESOLVED, organisation: UNRESOLVED,
     legalEntity: UNRESOLVED, market: UNRESOLVED, digitalEstate: UNRESOLVED };
   for (const key of Object.keys(supplied)) {
-    if (!(key in refs)) throw new Error('Unknown canonical reference');
+    if (!Object.hasOwn(refs, key)) throw new Error('Unknown canonical reference');
     const name = key as keyof CanonicalReferences;
     const value = supplied[name];
     if (typeof value !== 'string' || value !== UNRESOLVED && !(name === 'tenant' ? /^tn_[a-z0-9]+$/.test(value) : name === 'market' ? marketId.test(value) : uuid.test(value))) {
@@ -54,7 +54,7 @@ export function syntheticEstateProfile(runId: string, supplied: Partial<Canonica
     estateCode: prefix + '-estate', marketCode: prefix + '-market', marketName: 'Synthetic ZA market',
     estateName: label, locale: 'en-ZA', currency: 'ZAR', geography: ['ZA'], maxProjectionAgeMs: 90 * 60 * 1000,
     ...(refs.legalEntity !== UNRESOLVED ? { firstPartyId: refs.legalEntity } : {}),
-    seeds: [
+    seeds: ([
       { contentKey: 'home', collection: 'pages', fields: { title: label, slug: 'home', status: 'draft',
         eyebrow: 'Synthetic qualification data', headline: label, introduction: 'Disposable content for integration checks.',
         institutionalStatement: 'No real legal, commercial or portfolio facts are represented.',
@@ -66,7 +66,11 @@ export function syntheticEstateProfile(runId: string, supplied: Partial<Canonica
       { contentKey: 'site-settings', collection: 'site-configurations', kind: 'site-settings', fields: { title: 'Synthetic settings', siteName: label } },
       { contentKey: 'group-profile', collection: 'site-configurations', kind: 'group-profile', fields: { title: 'Synthetic group',
         body: [{ type: 'paragraph', text: 'A synthetic group profile with no ownership or subsidiary assertions.' }] } },
-    ],
+    ] satisfies SeedSpec[]).map(seed => ({ ...seed, fields: { ...seed.fields,
+      // These are explicit fixture data, matching the maintained corporate
+      // collection defaults; provenance comparison never discards SEO changes.
+      ...(seed.collection === 'site-configurations' ? { visibility: 'public', seo: { robots: { index: true, follow: true } } } : {}),
+    } })),
   });
 }
 export function validateSyntheticProfile(profile: SyntheticEstateProfile): void {
@@ -130,7 +134,8 @@ export async function setSyntheticContentState(repo: ContentSeedRepository, prof
     if (rows.length !== 1 || String(rows[0].id) !== report.ids['content-' + seed.contentKey] ||
         !isDeepStrictEqual(contentDataForKey(seed.contentKey, rows[0]), contentDataForKey(seed.contentKey, seed.fields)) ||
         rows[0].contentScope !== 'DIGITAL_ESTATE' || rows[0].effectiveFrom || rows[0].effectiveTo ||
-        Array.isArray(rows[0].regions) && rows[0].regions.length) throw new Error('Fixture content changed; editor content is never published by setup');
+        (rows[0].regions != null && (!Array.isArray(rows[0].regions) || rows[0].regions.length > 0)) ||
+        (rows[0].visibility != null && rows[0].visibility !== 'public')) throw new Error('SYNTHETIC_FIXTURE_CHANGED:' + seed.contentKey);
   }
   for (const seed of profile.seeds) {
     await repo.update(seed.collection, report.ids['content-' + seed.contentKey], seed.collection === 'pages'

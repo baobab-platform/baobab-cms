@@ -134,5 +134,10 @@ async function check(payload: Payload, mode: string) {
 // Payload destroy complete. A failed write or assertion exits nonzero.
 main().then(
   receipt => process.stdout.write(JSON.stringify(receipt) + '\n', error => process.exit(error ? 1 : 0)),
-  () => process.stderr.write('CMS_PG17_COMPONENT_CHECK_FAILED\n', () => process.exit(1)),
+  error => {
+    // Export only a fixed fixture key, never assertion/SQL bodies or credentials.
+    const code = error instanceof Error && /^SYNTHETIC_FIXTURE_CHANGED:(home|navigation|footer|site-settings|group-profile)$/.test(error.message)
+      ? error.message : 'CMS_PG17_COMPONENT_CHECK_FAILED';
+    process.stderr.write(code + '\n', () => process.exit(1));
+  },
 );
