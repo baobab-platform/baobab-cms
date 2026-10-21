@@ -30,7 +30,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     // An explicitly requested proof profile must never fall back to a product
     // token if its independent development credential/deadline is invalid.
-    tokens = env('CMS_CONTEXT_VALIDATOR_MODE')
+    tokens = process.env.CMS_CONTEXT_VALIDATOR_MODE !== undefined
       ? createDevelopmentValidatorTokens()
       : validatorToken ? { getToken: async () => validatorToken } : undefined;
   } catch { tokens = undefined; }

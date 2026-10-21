@@ -6,7 +6,7 @@ import { POST } from './route.js';
 
 afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
 
-it.each(['typo', 'development-proof'])('never falls back to a fixed product token when explicit mode is invalid: %s', async mode => {
+it.each(['', 'typo', 'development-proof'])('never falls back to a fixed product token when explicit mode is invalid: %s', async mode => {
   vi.stubEnv('CMS_CONTEXT_VALIDATOR_MODE', mode);
   vi.stubEnv('CMS_CONTEXT_VALIDATOR_TOKEN', 'synthetic-borrowed-product-token');
   vi.stubEnv('CMS_TOKEN_ISSUER', 'https://iam.example.test/');
