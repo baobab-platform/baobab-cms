@@ -42,7 +42,15 @@ export function syntheticEstateProfile(runId: string, supplied: Partial<Canonica
     if (!Object.hasOwn(refs, key)) throw new Error('Unknown canonical reference');
     const name = key as keyof CanonicalReferences;
     const value = supplied[name];
-    if (typeof value !== 'string' || value !== UNRESOLVED && !(name === 'tenant' ? /^tn_[a-z0-9]+$/.test(value) : name === 'market' ? marketId.test(value) : uuid.test(value))) {
+    // CP's ADR-SHARED-043 disposable bootstrap deliberately represents its
+    // unverified synthetic legal actor with a DEV-... reference, not a UUID.
+    // Only this exact run-bound Nabhold fixture marker is admissible here.
+    // Production references and other actors are never relaxed.
+    const developmentLegalActor = name === 'legalEntity' &&
+      value === `DEV-${runId.slice(0, 12)}-NABHOLD`;
+    if (typeof value !== 'string' || value !== UNRESOLVED && !(name === 'tenant'
+      ? /^tn_[a-z0-9]+$/.test(value) : name === 'market' ? marketId.test(value)
+      : uuid.test(value) || developmentLegalActor)) {
       throw new Error('Invalid supplied CP reference');
     }
     refs[name] = value;

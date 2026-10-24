@@ -45,3 +45,29 @@ it('accepts only complete run-bound declarations, without establishing CP issuan
     expect(() => int03ReferenceDeclaration(raw, runId)).toThrow();
   }
 });
+
+it('accepts only the exact CP DEV-05 run-bound Nabhold synthetic legal actor', () => {
+  const runId = env.CMS_INT03_RUN_ID;
+  const references = {
+    tenant: 'tn_contractvector',
+    organisation: '11111111-1111-4111-8111-111111111111',
+    legalEntity: 'DEV-' + runId.slice(0, 12) + '-NABHOLD',
+    market: 'mkt_dev' + runId + 'za',
+    digitalEstate: '33333333-3333-4333-8333-333333333333',
+  };
+  const declaration = (refs: typeof references) => JSON.stringify({
+    schema: 'cms.int03.reference-declaration.v1', run_id: runId, references: refs,
+  });
+  // This assertion does not claim the fixture actually came from CP: only
+  // the runner's signed/current CP readback can establish issuance.
+  expect(int03ReferenceDeclaration(declaration(references), runId)).toEqual(references);
+  for (const invalid of [
+    'DEV-' + 'f'.repeat(12) + '-NABHOLD',
+    'DEV-' + runId.slice(0, 12) + '-THAMANI',
+    'DEV-' + runId.slice(0, 12) + '-NABHOLD-EXT',
+    'DEV-' + runId.slice(0, 12) + '-nabhold',
+  ]) {
+    expect(() => int03ReferenceDeclaration(declaration({ ...references, legalEntity: invalid }), runId)).toThrow();
+  }
+  expect(() => int03ReferenceDeclaration(declaration(references), 'fedcba9876543210')).toThrow();
+});
