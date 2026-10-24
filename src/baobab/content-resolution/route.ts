@@ -1,3 +1,4 @@
+import { CallerStatusUnavailable } from '../identity/development-caller-status.js';
 import {
   handleContentResolve,
   type ContentResolveDependencies,
@@ -143,7 +144,12 @@ export async function handleContentResolveRoute(
 
   // 1. Authenticate.
   const token = bearerToken(request.authorization);
-  const caller = token ? await deps.authenticate(token) : null;
+  let caller: AuthenticatedCaller | null = null;
+  try { caller = token ? await deps.authenticate(token) : null; }
+  catch (error) {
+    if (error instanceof CallerStatusUnavailable) return fail(503, 'content-context-unavailable', 'CONTENT_CONTEXT_UNAVAILABLE', 'Caller status unavailable', 'Current caller status could not be checked.', true);
+    return fail(401, 'authentication-required', 'AUTHENTICATION_REQUIRED', 'Authentication required', 'A valid workload token is required.');
+  }
   if (!token || !caller) {
     return fail(401, 'authentication-required', 'AUTHENTICATION_REQUIRED', 'Authentication required', 'A valid workload token is required.');
   }

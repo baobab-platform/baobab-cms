@@ -1,3 +1,4 @@
+import { CallerStatusUnavailable } from '../identity/development-caller-status.js';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { AuthenticatedCaller } from './route.js';
 
@@ -13,6 +14,7 @@ export interface CallerAuthConfig {
   issuer: string;
   audience: string;
   jwksUrl: string;
+  currentStatus?: (token: string) => Promise<Record<string, unknown>>;
 }
 
 // Shared workload-token grammar permits hierarchical actions such as
@@ -34,8 +36,17 @@ export function createCallerAuthenticator(config: CallerAuthConfig) {
       });
       if (payload.actor_type !== 'workload') return null;
       if (typeof payload.scope !== 'string' || !payload.scope.split(' ').every((scope) => SCOPE_KEY.test(scope))) return null;
+      if (config.currentStatus) {
+        const current = await config.currentStatus(token);
+        const aud = typeof current.aud === 'string' ? [current.aud] : current.aud;
+        const client = payload.azp ?? payload.client_id;
+        if (current.active !== true || current.iss !== payload.iss || current.sub !== payload.sub ||
+            typeof client !== 'string' || current.client_id !== client || current.exp !== payload.exp ||
+            !Array.isArray(aud) || !aud.includes(config.audience) || current.scope !== payload.scope) return null;
+      }
       return { scopes: new Set(payload.scope.split(' ')) };
-    } catch {
+    } catch (error) {
+      if (error instanceof CallerStatusUnavailable) throw error;
       return null;
     }
   };
