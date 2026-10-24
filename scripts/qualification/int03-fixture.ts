@@ -22,6 +22,7 @@ async function main() {
   failurePhase = 'PAYLOAD_INIT';
   const { default: config } = await import('../../payload.config.js');
   const payload = await getPayload({ config });
+  let failed = false;
   try {
     failurePhase = 'PG17_CHECK';
     const version = await (payload.db as unknown as PostgresAdapter).pool.query('SHOW server_version_num');
@@ -58,7 +59,14 @@ async function main() {
         ? 'UNRESOLVED' : 'EXTERNAL_DECLARATION_NOT_VERIFIED',
       human_editorial_approval: false, identities_created: false, cp_issuance_proven: false,
       connected_qualification: false, full_int03_acceptance: false, production_authorized: false };
-  } finally { failurePhase = 'DESTROY'; await payload.destroy(); }
+  } catch (error) {
+    failed = true;
+    throw error;
+  } finally {
+    // A failed operation keeps its original phase even if cleanup succeeds.
+    if (!failed) failurePhase = 'DESTROY';
+    await payload.destroy();
+  }
 }
 // Flush the bounded result before closing the adapter's reconnect-monitor
 // connection with process exit; the harness separately destroys all storage.
