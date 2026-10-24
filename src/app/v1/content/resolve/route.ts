@@ -1,3 +1,4 @@
+import { developmentCallerStatus } from '../../../../baobab/identity/development-caller-status.js';
 import { randomUUID } from 'node:crypto';
 import { getPayload } from 'payload';
 import config from '../../../../../payload.config.js';
@@ -31,12 +32,14 @@ export async function POST(request: Request): Promise<Response> {
   const controlPlane = env('CONTROL_PLANE_URL');
   const validatorToken = env('CMS_CONTEXT_VALIDATOR_TOKEN');
   let tokens: ValidatorTokenProvider | undefined;
+  let currentStatus: ReturnType<typeof developmentCallerStatus> | undefined;
   try {
     // An explicitly requested proof profile must never fall back to a product
     // token if its independent development credential/deadline is invalid.
     tokens = process.env.CMS_CONTEXT_VALIDATOR_MODE !== undefined
       ? createDevelopmentValidatorTokens()
       : validatorToken ? { getToken: async () => validatorToken } : undefined;
+    if (process.env.CMS_CONTEXT_VALIDATOR_MODE !== undefined) currentStatus = developmentCallerStatus();
   } catch { tokens = undefined; }
 
   if (!issuer || !audience || !jwksUrl || !controlPlane || !tokens) {
@@ -55,7 +58,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const payload = await getPayload({ config });
-  const authenticate = createCallerAuthenticator({ issuer, audience, jwksUrl });
+  const authenticate = createCallerAuthenticator({ issuer, audience, jwksUrl, currentStatus });
   const validate = createControlPlaneContextValidator({
     baseUrl: controlPlane,
     // A proof run uses its own current, independently scoped development

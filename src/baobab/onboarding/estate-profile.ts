@@ -62,7 +62,7 @@ export function syntheticEstateProfile(runId: string, supplied: Partial<Canonica
       { contentKey: 'navigation', collection: 'site-configurations', kind: 'navigation', fields: { title: 'Synthetic navigation',
         navigationItems: [{ label: 'About', href: '/about/group' }, { label: 'Insights', href: '/insights' }] } },
       { contentKey: 'footer', collection: 'site-configurations', kind: 'footer', fields: { title: 'Synthetic footer',
-        statement: 'Disposable synthetic qualification content.', footerLinks: [{ label: 'About', href: '/about/group' }] } },
+        statement: 'Disposable synthetic qualification content.', tagline: 'Synthetic development fixture', footerLinks: [{ label: 'About', href: '/about/group' }] } },
       { contentKey: 'site-settings', collection: 'site-configurations', kind: 'site-settings', fields: { title: 'Synthetic settings', siteName: label } },
       { contentKey: 'group-profile', collection: 'site-configurations', kind: 'group-profile', fields: { title: 'Synthetic group',
         body: [{ type: 'paragraph', text: 'A synthetic group profile with no ownership or subsidiary assertions.' }] } },

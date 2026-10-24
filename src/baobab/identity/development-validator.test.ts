@@ -41,6 +41,11 @@ function fixture() {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
 
 describe('independent development CMS validator', () => {
+  it('preserves a bare-origin issuer without appending a slash', async () => {
+    const { env, fetcher } = fixture(); env.CMS_TOKEN_ISSUER = 'https://iam.example.test';
+    await expect(createDevelopmentValidatorTokens(env, fetcher).getToken()).resolves.toBe('synthetic-validator-token-1');
+  });
+
   it('uses its own current scope/audience credentials on every call', async () => {
     const { env, fetcher } = fixture(); const tokens = createDevelopmentValidatorTokens(env, fetcher);
     await expect(tokens.getToken()).resolves.toBe('synthetic-validator-token-1');

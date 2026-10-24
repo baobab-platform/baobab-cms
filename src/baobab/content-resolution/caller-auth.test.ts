@@ -67,6 +67,17 @@ describe('CMS signed workload scope authentication', () => {
     expect(await authenticate(`${header}.${payload}.${signature[0] === 'a' ? 'b' : 'a'}${signature.slice(1)}`)).toBeNull();
     expect(await authenticate(`${Buffer.from('{"alg":"none"}').toString('base64url')}.${payload}.`)).toBeNull();
   });
+  it('rechecks status for the same signed bearer and binds current claims', async () => {
+    let active = true;
+    const signed = await token('content:entry:resolve', { azp: 'fixture-client' });
+    const payload = JSON.parse(Buffer.from(signed.split('.')[1], 'base64url').toString());
+    let calls = 0;
+    const verify = createCallerAuthenticator({ issuer, audience,
+      jwksUrl: `http://127.0.0.1:${(server.address() as { port: number }).port}/jwks`,
+      currentStatus: async () => { calls++; return { ...payload, active, client_id: 'fixture-client' }; } });
+    expect(await verify(signed)).not.toBeNull(); active = false;
+    expect(await verify(signed)).toBeNull(); expect(calls).toBe(2);
+  });
   it('keeps exact route scope and CP context enforcement after authentication', async () => {
     let contextCalls = 0;
     let contentReads = 0;

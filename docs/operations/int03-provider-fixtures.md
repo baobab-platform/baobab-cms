@@ -81,3 +81,15 @@ or production release gate remain outstanding. Once actual CP issuance and the
 reviewed activation pins are available, the connected owner must supply and
 independently prove current authority through the maintained IAM/CP/Nabhold ports;
 the component fixture result cannot stand in for those receipts.
+
+### DEV-05 current caller status
+
+The named development-proof mode now also checks the inbound caller's current
+issuer status after signature/issuer/audience/expiry verification. It uses the
+CMS validator's own same-issuer credential and immutable proof deadline, with
+bounded transport and no positive status cache. Inactive or rebound caller
+claims deny authentication; status-reader failure returns retryable 503, never
+an anonymous fallback or an accepted cached bearer. This complements CP's
+independent subject-token status check. It does not create a grant, certify the
+PARTIAL provider declaration or activate an estate binding. Existing deployments
+outside this explicit mode retain their configured authentication profile.

@@ -66,7 +66,9 @@ export function createDevelopmentValidatorTokens(
     if (env.CMS_CONTEXT_VALIDATOR_MODE !== 'development-proof' || env.CMS_WORKLOAD_ENVIRONMENT !== 'development' ||
         env.CMS_WORKLOAD_CLIENT_ID !== CLIENT || env.CMS_TOKEN_AUDIENCE !== 'baobab-cms' || env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ||
         env.CMS_CONTEXT_VALIDATOR_TOKEN) throw new Error();
-    const issuer = https(env.CMS_TOKEN_ISSUER).href;
+    // Issuer identifiers are exact protocol strings, not normalized origins.
+    const issuer = env.CMS_TOKEN_ISSUER ?? '';
+    https(issuer);
     const cp = https(env.CONTROL_PLANE_URL);
     if (cp.pathname !== '/' || https(env.CMS_TOKEN_JWKS_URL).origin !== new URL(issuer).origin) throw new Error();
     const tokenEndpoint = https(env.CMS_WORKLOAD_TOKEN_ENDPOINT).href;
