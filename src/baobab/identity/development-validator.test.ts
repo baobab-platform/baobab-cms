@@ -34,7 +34,7 @@ function fixture() {
     expect(body.get('token')).toMatch(/^synthetic-validator-token-/);
     return Response.json({ active: true, iss: env.CMS_TOKEN_ISSUER, client_id: env.CMS_WORKLOAD_CLIENT_ID,
       sub: 'validator-subject', actor_type: 'workload', aud: 'baobab-control-plane', scope: 'context:validate',
-      exp: Math.floor(Date.now() / 1000) + 60, ...state.claims });
+      iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 60, ...state.claims });
   });
   return { env, state, fetcher, deadline };
 }
@@ -44,6 +44,30 @@ describe('independent development CMS validator', () => {
   it('preserves a bare-origin issuer without appending a slash', async () => {
     const { env, fetcher } = fixture(); env.CMS_TOKEN_ISSUER = 'https://iam.example.test';
     await expect(createDevelopmentValidatorTokens(env, fetcher).getToken()).resolves.toBe('synthetic-validator-token-1');
+  });
+
+  it('accepts short issuer tokens with bounded request/signing clock separation', async () => {
+    const { env, fetcher, state } = fixture();
+    const now = Math.floor(Date.now() / 1000);
+    // 55s nominal ceiling, 2s observed clock separation. Both expiry from
+    // RequestedAt and observed acquisition remain within the 60s hard cap.
+    state.issued = { expires_in: 55 };
+    state.claims = { iat: now - 2, exp: now + 57 };
+    await expect(createDevelopmentValidatorTokens(env, fetcher).getToken()).resolves.toBe('synthetic-validator-token-1');
+  });
+
+  it('does not use clock allowance to admit a lifetime exceeding 60s', async () => {
+    const { env, fetcher, state } = fixture();
+    const now = Math.floor(Date.now() / 1000);
+    state.issued = { expires_in: 55 };
+    for (const claims of [
+      { iat: now - 5, exp: now + 57 }, // 62 seconds from issuer RequestedAt
+      { iat: now, exp: now + 61 }, // greater than acquisition's hard cap
+      { iat: now + 10, exp: now + 55 }, // future request timestamp
+    ]) {
+      state.claims = claims;
+      await expect(createDevelopmentValidatorTokens(env, fetcher).getToken()).rejects.toThrow('Development validator unavailable');
+    }
   });
 
   it('uses its own current scope/audience credentials on every call', async () => {
@@ -57,7 +81,7 @@ describe('independent development CMS validator', () => {
     { active: false }, { iss: 'https://foreign.example/' }, { client_id: 'baobab-int03-cms-consumer' }, { actor_type: 'human' },
     { sub: '' }, { aud: ['baobab-control-plane', 'baobab-cms'] }, { scope: 'context:resolve' },
     { scope: 'context:validate content:entry:resolve' }, { environment: 'production' }, { owner: 'baobab-platform/infrastructure' },
-    { exp: 1 }, { exp: Math.floor(Date.now() / 1000) + 3600 },
+    { exp: 1 }, { exp: Math.floor(Date.now() / 1000) + 3600 }, { iat: null }, { iat: true },
   ])('refuses swapped, expanded or inactive token evidence %j', async claims => {
     const { env, fetcher, state } = fixture(); state.claims = claims;
     await expect(createDevelopmentValidatorTokens(env, fetcher).getToken()).rejects.toThrow('Development validator unavailable');
