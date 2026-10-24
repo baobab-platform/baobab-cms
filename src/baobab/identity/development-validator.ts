@@ -4,6 +4,12 @@ import type { ValidatorTokenProvider } from '../content-resolution/control-plane
 const CLIENT = 'baobab-int03-cms-validator';
 const AUDIENCE = 'baobab-control-plane';
 const SCOPE = 'context:validate';
+// The native proof issuer is configured for 55s; the absolute upper bound is
+// still 60s. Hydra's request timestamp and JWT signing time may differ by
+// seconds, and exp is integer-second precision. Allow <=5s of discrepancy
+// against the nominal token endpoint TTL ONLY inside that hard 60s limit.
+const MAX_LIFETIME_SECONDS = 60;
+const MAX_ISSUER_TIME_DELTA_SECONDS = 5;
 
 class ValidatorUnavailable extends Error {
   constructor() { super('Development validator unavailable'); }
@@ -95,15 +101,22 @@ export function createDevelopmentValidatorTokens(
           const issued = await oauth.clientCredentialsGrant(config, { audience: AUDIENCE, scope: SCOPE });
           const received = Date.now();
           if (!issued.access_token || issued.access_token.length > 8192 || issued.token_type.toLowerCase() !== 'bearer' ||
-              !Number.isSafeInteger(issued.expires_in) || issued.expires_in! <= 0 || issued.expires_in! > 300 ||
+              !Number.isSafeInteger(issued.expires_in) || issued.expires_in! <= 0 || issued.expires_in! > MAX_LIFETIME_SECONDS ||
               received + issued.expires_in! * 1000 > deadline || issued.refresh_token !== undefined || issued.id_token !== undefined) throw new Error();
           const claims = await oauth.tokenIntrospection(config, issued.access_token);
           const aud = typeof claims.aud === 'string' ? [claims.aud] : claims.aud;
           if (claims.active !== true || claims.iss !== issuer || claims.client_id !== CLIENT || claims.actor_type !== 'workload' ||
               typeof claims.sub !== 'string' || !claims.sub || claims.sub.length > 255 ||
               !Array.isArray(aud) || aud.length !== 1 || aud[0] !== AUDIENCE || claims.scope !== SCOPE ||
-              !Number.isSafeInteger(claims.exp) || claims.exp! * 1000 <= Date.now() || claims.exp! * 1000 > deadline ||
-              claims.exp! * 1000 > received + issued.expires_in! * 1000 ||
+              // Issuer RequestedAt (introspection iat) can precede token
+              // signing, but *both* observed issuance and expiry remain
+              // independently bounded. Never extend actual bearer authority.
+              !Number.isSafeInteger(claims.iat) || claims.iat! > Math.floor(received / 1000) ||
+              !Number.isSafeInteger(claims.exp) || claims.exp! <= claims.iat! ||
+              claims.exp! - claims.iat! > MAX_LIFETIME_SECONDS ||
+              claims.exp! * 1000 <= Date.now() || claims.exp! * 1000 > deadline ||
+              claims.exp! * 1000 > received + Math.min(MAX_LIFETIME_SECONDS,
+                issued.expires_in! + MAX_ISSUER_TIME_DELTA_SECONDS) * 1000 ||
               claims.environment !== undefined && claims.environment !== 'development' ||
               claims.owner !== undefined && claims.owner !== 'baobab-platform/baobab-cms' || Date.now() >= deadline) throw new Error();
           // Request fresh authority each time; never cache a positive result.
