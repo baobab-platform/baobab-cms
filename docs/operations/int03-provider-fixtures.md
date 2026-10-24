@@ -54,6 +54,12 @@ must be `UNRESOLVED`, or all must be supplied in their maintained CP identifier
 formats. Mixed, stale-run, oversized, unknown-field or malformed declarations
 refuse before loading config or touching the database.
 
+In ADR-SHARED-043's disposable CP bootstrap only, `legalEntity` may be
+the exact `DEV-<first twelve run-hex>-NABHOLD` synthetic unverified legal
+actor. Wrong-run, wrong-actor, alternate case and embellished markers refuse.
+This marker is never treated as a verified registration or production legal
+identity; ordinary UUIDs retain their original meaning.
+
 The connected runner must obtain supplied identifiers from actual CP issuance
 and read back their current tenant/owner/estate relationships independently.
 Never generate identifiers to populate this input or copy Nabhold/subsidiary
@@ -93,3 +99,19 @@ an anonymous fallback or an accepted cached bearer. This complements CP's
 independent subject-token status check. It does not create a grant, certify the
 PARTIAL provider declaration or activate an estate binding. Existing deployments
 outside this explicit mode retain their configured authentication profile.
+
+### DEV-05 validator lifetime compatibility
+
+Hydra's introspection `iat` corresponds to access-request time; JWT signing
+may occur later, and `exp` has integer-second precision. Native qualification
+observed intermittent mismatches between `exp` and the token endpoint's nominal
+`expires_in`, despite positive issuer/subject/scope/audience checks. The
+Infrastructure development validator client is now configured with an actual
+55-second issuer ceiling. The CMS proof profile accepts only an independently
+active token with integer, ordered `iat`/`exp`, issuer/subject/client/audience/
+scope binding, and BOTH issuer-request-to-expiry and local-acquisition-to-expiry
+within a hard **60-second maximum**. At most five seconds of timestamp
+separation from the nominal 55-second issuance is tolerated, never extra
+lifetime, missing status, a token extending beyond the immutable run deadline,
+or an active bearer with mismatched current claims. No status is cached and
+no entitlement, approval, product token or static validator fallback is created.
