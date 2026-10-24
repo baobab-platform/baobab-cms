@@ -33,7 +33,7 @@ export function developmentCallerStatus(env: Record<string, string | undefined> 
           size += part.value.byteLength; if (size > 65536) throw new Error(); chunks.push(part.value);
         }
         const value: unknown = JSON.parse(Buffer.concat(chunks, size).toString('utf8'));
-        if (!value || typeof value !== 'object' || Array.isArray(value) || Date.now() >= deadline) throw new Error();
+        if (!value || typeof value !== 'object' || Array.isArray(value) || typeof (value as Record<string, unknown>).active !== 'boolean' || Date.now() >= deadline) throw new Error();
         return value as Record<string, unknown>;
       } finally { signal.removeEventListener('abort', abort); void reader.cancel().catch(() => undefined); }
     } catch { throw new CallerStatusUnavailable(); }

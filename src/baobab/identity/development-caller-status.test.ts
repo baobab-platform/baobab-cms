@@ -18,7 +18,7 @@ describe('bounded current caller status', () => {
     await status('private-fixture'); expect(calls).toBe(2);
   });
   it('fails closed on status outage, malformed and oversized responses', async () => {
-    for (const response of [Response.json({}, { status: 503 }), Response.json([]), Response.json({ padding: 'a'.repeat(65537) })]) {
+    for (const response of [Response.json({}, { status: 503 }), Response.json([]), Response.json({}), Response.json({ active: 'true' }), Response.json({ padding: 'a'.repeat(65537) })]) {
       await expect(developmentCallerStatus(environment(), async () => response)('private-fixture')).rejects.toBeInstanceOf(CallerStatusUnavailable);
     }
   });
