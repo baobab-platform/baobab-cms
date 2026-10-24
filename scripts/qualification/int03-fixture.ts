@@ -9,25 +9,38 @@ import { int03FixtureBoundary, int03ReferenceDeclaration } from '../../src/baoba
 import { createPayloadEstateRepository } from '../../src/baobab/onboarding/payload-repository.js';
 import { onboardSyntheticEstate, seedSyntheticContent, setSyntheticContentState, syntheticEstateProfile } from '../../src/baobab/onboarding/estate-profile.js';
 
+// Only fixed phase names are reported to the integrating runner. Raw Payload, SQL,
+// identity and provider errors may contain credentials or protected data.
+const PHASES = ['BOUNDARY', 'REFERENCE_DECLARATION', 'PAYLOAD_INIT', 'PG17_CHECK',
+  'ESTATE_PROJECTION', 'CONTENT_SEED', 'PUBLICATION', 'READBACK', 'DESTROY'] as const;
+let failurePhase: typeof PHASES[number] = 'BOUNDARY';
+
 async function main() {
   const { runId, action } = int03FixtureBoundary(process.env, process.argv.slice(2));
+  failurePhase = 'REFERENCE_DECLARATION';
   const references = int03ReferenceDeclaration(process.env.CMS_INT03_REFERENCE_DECLARATION, runId);
+  failurePhase = 'PAYLOAD_INIT';
   const { default: config } = await import('../../payload.config.js');
   const payload = await getPayload({ config });
   try {
+    failurePhase = 'PG17_CHECK';
     const version = await (payload.db as unknown as PostgresAdapter).pool.query('SHOW server_version_num');
     assert.equal(Math.floor(Number(version.rows[0].server_version_num) / 10000), 17);
     const repo = createPayloadEstateRepository(payload);
     const profile = syntheticEstateProfile(runId, references);
     const options = { mode: action === 'seed' ? 'apply' as const : 'verify' as const,
       environment: 'non-production' as const, projectionMode: 'local' as const };
+    failurePhase = 'ESTATE_PROJECTION';
     assert((await onboardSyntheticEstate(repo, profile, options)).converged);
+    failurePhase = 'CONTENT_SEED';
     const seeded = await seedSyntheticContent(repo, profile, options);
     assert(seeded.converged);
+    failurePhase = 'PUBLICATION';
     if (['publish', 'withdraw', 'draft'].includes(action)) {
       await setSyntheticContentState(repo, profile, action === 'publish' ? 'published' : action === 'withdraw' ? 'withdrawn' : 'draft',
         { ...options, mode: 'apply' });
     }
+    failurePhase = 'READBACK';
     const states: Record<string, string> = {};
     for (const seed of profile.seeds) {
       const doc = await payload.findByID({ collection: seed.collection, id: seeded.ids['content-' + seed.contentKey], depth: 0, overrideAccess: true });
@@ -45,9 +58,9 @@ async function main() {
         ? 'UNRESOLVED' : 'EXTERNAL_DECLARATION_NOT_VERIFIED',
       human_editorial_approval: false, identities_created: false, cp_issuance_proven: false,
       connected_qualification: false, full_int03_acceptance: false, production_authorized: false };
-  } finally { await payload.destroy(); }
+  } finally { failurePhase = 'DESTROY'; await payload.destroy(); }
 }
 // Flush the bounded result before closing the adapter's reconnect-monitor
 // connection with process exit; the harness separately destroys all storage.
 main().then(receipt => process.stdout.write(JSON.stringify(receipt) + '\n', error => process.exit(error ? 1 : 0)),
-  () => process.stderr.write('CMS_INT03_FIXTURE_FAILED\n', () => process.exit(1)));
+  () => process.stderr.write('CMS_INT03_STAGE_FAILED=' + failurePhase + '\n', () => process.exit(1)));
