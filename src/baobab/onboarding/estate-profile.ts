@@ -118,7 +118,11 @@ export async function onboardSyntheticEstate(repo: ProjectionRepository, profile
 export async function seedSyntheticContent(repo: ContentSeedRepository, profile: SyntheticEstateProfile, options: FixtureOptions) {
   boundary(profile, options);
   await verifyReferences(repo, profile);
-  return seedEstateContent(repo, profile, profile.seeds, options);
+  // A supplied CP Market narrows this disposable fixture. The record's
+  // declared scope must carry that dimension through native delivery so an
+  // exact Market consumer never has to accept estate-wide fallback content.
+  return seedEstateContent(repo, profile, profile.seeds, { ...options,
+    contentScope: profile.canonicalReferences.market === UNRESOLVED ? 'DIGITAL_ESTATE' : 'MARKET' });
 }
 
 /** CMS-owned publication of disposable fixtures, never human editorial approval.
@@ -141,7 +145,7 @@ export async function setSyntheticContentState(repo: ContentSeedRepository, prof
       { digitalEstateId: String(estates[0].id), locale: profile.locale });
     if (rows.length !== 1 || String(rows[0].id) !== report.ids['content-' + seed.contentKey] ||
         !isDeepStrictEqual(contentDataForKey(seed.contentKey, rows[0]), contentDataForKey(seed.contentKey, seed.fields)) ||
-        rows[0].contentScope !== 'DIGITAL_ESTATE' || rows[0].effectiveFrom || rows[0].effectiveTo ||
+        rows[0].contentScope !== (profile.canonicalReferences.market === UNRESOLVED ? 'DIGITAL_ESTATE' : 'MARKET') || rows[0].effectiveFrom || rows[0].effectiveTo ||
         (rows[0].regions != null && (!Array.isArray(rows[0].regions) || rows[0].regions.length > 0)) ||
         (rows[0].visibility != null && rows[0].visibility !== 'public')) throw new Error('SYNTHETIC_FIXTURE_CHANGED:' + seed.contentKey);
   }

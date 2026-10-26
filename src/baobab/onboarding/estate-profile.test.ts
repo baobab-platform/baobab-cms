@@ -24,6 +24,24 @@ const options = { mode: 'apply' as const, environment: 'non-production' as const
 const profile = syntheticEstateProfile('0123456789abcdef');
 
 describe('independently scoped estate profiles', () => {
+  it('keeps CP-declared Market fixtures narrow through publication and refuses scope broadening', async () => {
+    const id = '0199a1b2-c3d4-7e8f-9a0b-0000000000a1';
+    const supplied = syntheticEstateProfile(profile.runId, { tenant: 'tn_unitfixture', organisation: id,
+      legalEntity: id, market: 'mkt_unitfixture', digitalEstate: id });
+    const { repo, store } = memory();
+    await onboardSyntheticEstate(repo, supplied, options);
+    await seedSyntheticContent(repo, supplied, options);
+    for (const row of [...store.pages, ...store['site-configurations']]) expect(row.contentScope).toBe('MARKET');
+    for (const state of ['published', 'draft', 'withdrawn'] as const) {
+      await setSyntheticContentState(repo, supplied, state, options);
+      expect(store.pages[0].contentScope).toBe('MARKET');
+    }
+    store.pages[0].contentScope = 'DIGITAL_ESTATE';
+    const before = JSON.stringify(store);
+    await expect(setSyntheticContentState(repo, supplied, 'published', options)).rejects.toThrow('SYNTHETIC_FIXTURE_CHANGED');
+    expect(JSON.stringify(store)).toBe(before);
+  });
+
   it('keeps canonical references explicitly unresolved and creates no substitute principal', async () => {
     const { repo, store } = memory();
     expect((await onboardSyntheticEstate(repo, profile, options)).converged).toBe(true);
