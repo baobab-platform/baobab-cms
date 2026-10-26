@@ -170,3 +170,16 @@ activation or certification. Historical PARTIAL notes above describe earlier
 increments. Native IAM/CP/PG/BFF acceptance remains the fourteen-case Infrastructure
 NAB-03 qualifier at its recorded source pins, with independent audit read-back and
 issuer/host cleanup. Protected and production acceptance remain separate.
+
+## Exact Market qualification fixture
+
+A disposable synthetic profile supplied with a real CP Market now creates
+MARKET-scoped records. Native delivery therefore includes that canonical Market
+and resolves the estate's complete selector as EXACT. An estate-wide record is
+not equivalent: the BFF correctly refuses fallback when a Market was selected.
+Profiles with unresolved Market references retain their former DIGITAL_ESTATE
+scope, and ordinary Nabhold starter content remains DRAFT and estate scoped.
+Publication verifies the expected scope and refuses broadened or edited rows;
+existing rows are never silently rewritten. Fresh connected evidence is required
+after changing the owner source pin. This carries content-selection scope only,
+not legal, commercial, provider certification or production authority.

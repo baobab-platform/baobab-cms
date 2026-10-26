@@ -80,7 +80,7 @@ export async function seedEstateContent(
   repo: ContentSeedRepository,
   profile: EstateProfile,
   seeds: readonly SeedSpec[],
-  options: { mode: Mode; projectionMode: 'local' | 'none'; environment: 'production' | 'non-production' },
+  options: { mode: Mode; projectionMode: 'local' | 'none'; environment: 'production' | 'non-production'; contentScope?: 'DIGITAL_ESTATE' | 'MARKET' },
 ): Promise<OnboardingReport> {
   const steps: StepResult[] = [];
   const blockers: string[] = [];
@@ -167,7 +167,7 @@ export async function seedEstateContent(
       digitalEstate: estate.id,
       market: market.id,
       locale: profile.locale,
-      contentScope: 'DIGITAL_ESTATE',
+      contentScope: options.contentScope ?? 'DIGITAL_ESTATE',
     });
     ids[step] = String(created.id);
     steps.push({ step, collection: seed.collection, action: 'create', detail: 'DRAFT' });
