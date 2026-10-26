@@ -1,5 +1,6 @@
 import { developmentCallerStatus } from '../../../../baobab/identity/development-caller-status.js';
 import { randomUUID } from 'node:crypto';
+import { createContentCapabilityAuthority } from '../../../../baobab/content-resolution/capability-authority.js';
 import { getPayload } from 'payload';
 import config from '../../../../../payload.config.js';
 import { createCallerAuthenticator } from '../../../../baobab/content-resolution/caller-auth.js';
@@ -33,6 +34,7 @@ export async function POST(request: Request): Promise<Response> {
   const validatorToken = env('CMS_CONTEXT_VALIDATOR_TOKEN');
   let tokens: ValidatorTokenProvider | undefined;
   let currentStatus: ReturnType<typeof developmentCallerStatus> | undefined;
+  let resolveCapability: ReturnType<typeof createContentCapabilityAuthority> | undefined;
   try {
     // An explicitly requested proof profile must never fall back to a product
     // token if its independent development credential/deadline is invalid.
@@ -40,9 +42,11 @@ export async function POST(request: Request): Promise<Response> {
       ? createDevelopmentValidatorTokens()
       : validatorToken ? { getToken: async () => validatorToken } : undefined;
     if (process.env.CMS_CONTEXT_VALIDATOR_MODE !== undefined) currentStatus = developmentCallerStatus();
+    resolveCapability = createContentCapabilityAuthority({ baseUrl: controlPlane ?? '',
+      providerId: env('CMS_CAPABILITY_PROVIDER_ID') ?? '', engineInstanceId: env('CMS_ENGINE_INSTANCE_ID') ?? '' });
   } catch { tokens = undefined; }
 
-  if (!issuer || !audience || !jwksUrl || !controlPlane || !tokens) {
+  if (!issuer || !audience || !jwksUrl || !controlPlane || !tokens || !resolveCapability) {
     return Response.json(
       { code: 'CONTENT_CONTEXT_UNAVAILABLE', title: 'Not configured', status: 503, retryable: true },
       { status: 503, headers: { 'content-type': 'application/problem+json', 'cache-control': 'no-store' } },
@@ -77,6 +81,16 @@ export async function POST(request: Request): Promise<Response> {
     },
     {
       authenticate,
+      resolveCapability,
+      // Audit persistence is mandatory before returning content. Only canonical
+      // references and record identity are stored, never bearer or content data.
+      recordRead: async input => { await payload.create({ collection: 'audit-logs', overrideAccess: true,
+        data: { actorId: input.subject, tenant: input.tenantId, resourceType: 'content.entry',
+          resourceId: input.recordId ?? input.contentKey, action: 'content.entry.resolve', outcome: 'ALLOWED',
+          correlationId: input.correlationId, resultingState: { context_id: input.contextId,
+            resolution_id: input.authority.resolutionId, grant_id: input.authority.grantId,
+            binding_id: input.authority.bindingId, provider_id: input.authority.providerId,
+            engine_instance_id: input.authority.engineInstanceId, content_key: input.contentKey, record_id: input.recordId } } }); },
       validateContext: validate,
       validateProjection: createPayloadProjectionValidator(payload as never),
       content: createPayloadContentSource(payload as never),

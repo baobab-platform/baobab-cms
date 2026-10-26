@@ -12,7 +12,10 @@ const ORG = '0199a1b2-c3d4-7e8f-9a0b-0000000000a1';
 
 function deps(over: Partial<ContentRouteDependencies> = {}): ContentRouteDependencies {
   return {
-    authenticate: async () => ({ scopes: new Set(['content:entry:resolve']) }),
+    authenticate: async () => ({ subject: 'fixture-workload', scopes: new Set(['content:entry:resolve']) }),
+    resolveCapability: async () => ({ status: 'valid', authority: { resolutionId: 'res_'+'1'.repeat(32),
+      grantId: 'grant_'+'2'.repeat(32), bindingId: 'bind_'+'3'.repeat(32), providerId: 'provider_'+'4'.repeat(32), engineInstanceId: 'ei_'+'5'.repeat(32) } }),
+    recordRead: async () => {},
     validateContext: async () => ({ status: 'valid', tenantId: TENANT, organisationId: ORG }),
     validateProjection: async () => true,
     content: {
@@ -43,6 +46,28 @@ const req = (over: Partial<RouteRequest> = {}): RouteRequest => ({
 });
 
 describe('POST /v1/content/resolve pipeline', () => {
+  it('denies withdrawn capability before any projection/content read or allowed audit', async () => {
+    const projection = vi.fn(), load = vi.fn(), audit = vi.fn();
+    const d = deps({ resolveCapability: async () => ({ status: 'rejected' }), validateProjection: projection, recordRead: audit });
+    d.content.loadCandidates = load;
+    expect((await handleContentResolveRoute(req(), d)).status).toBe(403);
+    expect(projection).not.toHaveBeenCalled(); expect(load).not.toHaveBeenCalled(); expect(audit).not.toHaveBeenCalled();
+  });
+  it('does not return content when canonical authority or durable audit is unavailable', async () => {
+    const unavailable = await handleContentResolveRoute(req(), deps({ resolveCapability: async () => ({ status: 'unavailable' }) }));
+    expect(unavailable.status).toBe(503);
+    const failed = await handleContentResolveRoute(req(), deps({ recordRead: async () => { throw new Error('private database body'); } }));
+    expect(failed.status).toBe(503);
+    expect(JSON.stringify(failed.body)).not.toMatch(/private database|Home/);
+    expect(failed.body).not.toHaveProperty('record');
+  });
+  it('records the CP decision and exact record before returning content without storing the bearer', async () => {
+    const audit = vi.fn(async () => {});
+    expect((await handleContentResolveRoute(req(), deps({ recordRead: audit }))).status).toBe(200);
+    expect(audit).toHaveBeenCalledWith(expect.objectContaining({ subject: 'fixture-workload', tenantId: TENANT,
+      contextId: CTX, contentKey: 'home', recordId: 'e1', authority: expect.objectContaining({ grantId: 'grant_'+'2'.repeat(32) }) }));
+    expect(JSON.stringify(audit.mock.calls)).not.toContain('abc.def.ghi');
+  });
   it('resolves an exact published entry with private caching', async () => {
     const res = await handleContentResolveRoute(req(), deps());
     expect(res.status).toBe(200);
@@ -64,7 +89,7 @@ describe('POST /v1/content/resolve pipeline', () => {
     const validateContext = vi.fn();
     const res = await handleContentResolveRoute(
       req(),
-      deps({ authenticate: async () => ({ scopes: new Set(['content:entry:preview']) }), validateContext }),
+      deps({ authenticate: async () => ({ subject: 'fixture-workload', scopes: new Set(['content:entry:preview']) }), validateContext }),
     );
     expect(res.status).toBe(403);
     expect(validateContext).not.toHaveBeenCalled();
@@ -114,7 +139,7 @@ describe('POST /v1/content/resolve pipeline', () => {
 
     const ok = await handleContentResolveRoute(
       req({ bodyText: body }),
-      deps({ authenticate: async () => ({ scopes: new Set(['content:entry:resolve', 'content:entry:preview']) }) }),
+      deps({ authenticate: async () => ({ subject: 'fixture-workload', scopes: new Set(['content:entry:resolve', 'content:entry:preview']) }) }),
     );
     expect(ok.status).toBe(200);
     expect(ok.headers['cache-control']).toBe('no-store');

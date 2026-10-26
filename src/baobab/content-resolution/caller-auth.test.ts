@@ -84,6 +84,8 @@ describe('CMS signed workload scope authentication', () => {
     const dependencies = { authenticate, newCorrelationId: () => '019a0000-0000-7000-8000-000000000002',
       validateContext: async () => { contextCalls++; return { status: 'rejected' as const }; },
       validateProjection: async () => true,
+      resolveCapability: async () => ({ status: 'rejected' as const }),
+      recordRead: async () => {},
       content: { loadCandidates: async () => { contentReads++; return []; }, policyFor: () => undefined },
     };
     const request = { contextId: '019a0000-0000-7000-8000-000000000001', bodyText: '{}',

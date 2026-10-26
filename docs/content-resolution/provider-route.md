@@ -134,3 +134,39 @@ destroy all issuer trust/accepting runtimes, and always tear down. PARTIAL /
 non-production support remains unchanged. Actual CMS/PostgreSQL and complete
 NAB/L4 acceptance, protected IAM/CP, executive authority, staging, production
 and R0–R3 remain open. Protocol tests do not replace those gates.
+
+## DEV-05 current native capability enforcement
+
+The normal provider route now requires a fresh CP `content.entry.resolve@1`
+resolution after caller/context validation and before local projection/content
+reads. Configure the CP-issued wire identifiers `CMS_CAPABILITY_PROVIDER_ID`
+(`provider_...`) and `CMS_ENGINE_INSTANCE_ID` (`ei_...`) on the server. Missing or
+malformed configuration fails 503; there is no development bypass or default
+binding. The invocation must identify that exact provider/instance, contract and
+logical service `service://baobab-cms/content`. Grant, binding, resolution,
+context, correlation and expiry provenance are checked on every resource call.
+No positive grant or binding decision is cached.
+
+The caller's token needs both existing registry-allocated audiences
+`baobab-control-plane` and `baobab-cms`, with `context:resolve` and
+`content:entry:resolve`. The independent CMS validator keeps only
+`context:validate`; it never borrows the caller's entitlement. Caller scopes and
+current context do not substitute for the capability grant. Revoked grants,
+missing subscriptions, retired bindings and wrong provider/instance fail closed.
+Transport/authority failure is retryable 503; unusable authority is generic 403.
+Bounded HTTPS reads reject redirects, unsafe configured origins, oversized or
+malformed decisions, expired provenance and disabled TLS verification.
+
+A successful native content response must first persist `content.entry.resolve`
+in the existing immutable `audit-logs` collection. The audit joins the actual
+record identity and CP context/resolution/grant/binding/provider/instance tuple;
+it stores no bearer or content body. Failure to persist returns 503 without
+content. This strict read path deliberately does not use the best-effort
+editorial audit helper. Denied authority cannot reach projection/content reads
+or create an allowed-read audit. No new database schema or migration is needed.
+
+The declaration's COMPLETE support is source implementation evidence, not
+activation or certification. Historical PARTIAL notes above describe earlier
+increments. Native IAM/CP/PG/BFF acceptance remains the fourteen-case Infrastructure
+NAB-03 qualifier at its recorded source pins, with independent audit read-back and
+issuer/host cleanup. Protected and production acceptance remain separate.

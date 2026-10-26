@@ -1,4 +1,5 @@
 import { CallerStatusUnavailable } from '../identity/development-caller-status.js';
+import type { CapabilityInput, CapabilityValidation, ContentCapabilityAuthority } from './capability-authority.js';
 import {
   handleContentResolve,
   type ContentResolveDependencies,
@@ -31,6 +32,7 @@ const PROBLEM_BASE = 'https://docs.baobab-platform.com/problems/';
 
 export interface AuthenticatedCaller {
   scopes: ReadonlySet<string>;
+  subject: string;
 }
 
 export type ContextValidation =
@@ -39,6 +41,10 @@ export type ContextValidation =
   | { status: 'unavailable' };
 
 export interface ContentRouteDependencies {
+  resolveCapability(input: CapabilityInput): Promise<CapabilityValidation>;
+  /** Required durable audit, not the best-effort editorial audit helper. */
+  recordRead(input: { authority: ContentCapabilityAuthority; subject: string; tenantId: string;
+    contextId: string; correlationId: string; contentKey: string; recordId: string | null }): Promise<void>;
   /** Verifies the bearer token. Null means unauthenticated. */
   authenticate(bearerToken: string): Promise<AuthenticatedCaller | null>;
   /** Asks the Control Plane whether `contextId` belongs to the caller who presented `subjectToken`. */
@@ -199,6 +205,13 @@ export async function handleContentResolveRoute(
   if (!UUID.test(validation.organisationId)) {
     return fail(403, 'content-context-rejected', 'CONTENT_CONTEXT_REJECTED', 'Context rejected', 'The request context cannot be used by this caller.');
   }
+  let capability: CapabilityValidation;
+  try { capability = await deps.resolveCapability({ contextId: request.contextId, subjectToken: token, correlationId, traceparent }); }
+  catch { capability = { status: 'unavailable' }; }
+  if (capability.status === 'unavailable') return fail(503, 'content-context-unavailable', 'CONTENT_CONTEXT_UNAVAILABLE',
+    'Capability authority unavailable', 'Current capability authority could not be checked.', true);
+  if (capability.status !== 'valid') return fail(403, 'content-context-rejected', 'CONTENT_CONTEXT_REJECTED',
+    'Context rejected', 'The request context cannot be used by this caller.');
   try {
     if (!(await deps.validateProjection(validation.tenantId, validation.organisationId))) {
       return fail(403, 'content-context-rejected', 'CONTENT_CONTEXT_REJECTED', 'Context rejected', 'The request context cannot be used by this caller.');
@@ -219,5 +232,15 @@ export async function handleContentResolveRoute(
     },
     deps.content,
   );
+  if (outcome.ok) {
+    try {
+      await deps.recordRead({ authority: capability.authority, subject: caller.subject, tenantId: validation.tenantId,
+        contextId: request.contextId, correlationId, contentKey: String((body as { content_key: string }).content_key),
+        recordId: outcome.body.record?.id ?? null });
+    } catch {
+      return fail(503, 'content-context-unavailable', 'CONTENT_CONTEXT_UNAVAILABLE', 'Read audit unavailable',
+        'The content read could not be recorded.', true);
+    }
+  }
   return fromOutcome(outcome, previewRequested);
 }
