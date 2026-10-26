@@ -17,18 +17,14 @@
 #   environment.yaml         baobab-dev toolchain
 #   capability-provider.yaml canonical capability support  <- this file
 #
-# Census (EA-02A), candidate review (EA-02B) and contract work (EA-02C):
-#   content.entry.resolve is canonical, with Shared content/v1 as its
-#     contract (content-resolve-request / content-resolve-response and the
-#     OpenAPI published in Shared #254). The route POST /v1/content/resolve
-#     is implemented (src/app/v1/content/resolve/route.ts) over the
-#     transport pipeline in src/baobab/content-resolution/route.ts and is
-#     declared here as PARTIAL support: it is covered by unit tests and was
-#     exercised on PostgreSQL 16, but it has not been run against a live
-#     Control Plane, identity provider or granted workload client, and it
-#     carries no certification, binding or activation. Content/v1 still
-#     scopes by legal_entity_id; ADR-BCP-027 (Organisation-first) will need
-#     a Shared amendment adding organisation_id.
+# content.entry.resolve source support includes signed caller authentication,
+# fresh CP subject/context and capability resolution, exact local projections,
+# native Payload content resolution and mandatory durable read audit. COMPLETE
+# describes implemented source support only. Provider registration/activation,
+# EA-09 certification, joined NAB-03, staging and production are separate gates.
+# The disposable connected qualifier must prove every positive/negative case;
+# passing unit or owner PG tests cannot assert that joined runtime acceptance.
+# Shared content/v1 selectors remain unchanged and do not grant authority.
 #
 # Validate with a Shared checkout:
 #   python3 <shared>/scripts/capability_catalogue.py validate-declaration \
@@ -62,7 +58,7 @@ providers:
     support:
       - capability_key: content.entry.resolve
         contract_versions: [1]
-        implementation_status: PARTIAL
+        implementation_status: COMPLETE
         provenance:
           authority:
             repository: baobab-platform/shared
@@ -83,3 +79,9 @@ providers:
           - type: test
             path: src/baobab/content-resolution/route.test.ts
             description: Pipeline, Control Plane validator and loader behaviour including negative cases.
+          - type: source
+            path: src/baobab/content-resolution/capability-authority.ts
+            description: Fresh same-caller CP capability resolution bound to this configured provider and instance before content reads; no positive cache.
+          - type: test
+            path: src/baobab/content-resolution/capability-authority.test.ts
+            description: Current grant/binding/provider, provenance/freshness, body bounds, trusted transport and outage denials.

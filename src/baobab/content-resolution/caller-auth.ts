@@ -35,6 +35,7 @@ export function createCallerAuthenticator(config: CallerAuthConfig) {
         requiredClaims: ['exp', 'iat', 'sub', 'jti', 'scope', 'actor_type'],
       });
       if (payload.actor_type !== 'workload') return null;
+      if (typeof payload.sub !== 'string' || !payload.sub || payload.sub.length > 255) return null;
       if (typeof payload.scope !== 'string' || !payload.scope.split(' ').every((scope) => SCOPE_KEY.test(scope))) return null;
       if (config.currentStatus) {
         const current = await config.currentStatus(token);
@@ -44,7 +45,7 @@ export function createCallerAuthenticator(config: CallerAuthConfig) {
             typeof client !== 'string' || current.client_id !== client || current.exp !== payload.exp ||
             !Array.isArray(aud) || !aud.includes(config.audience) || current.scope !== payload.scope) return null;
       }
-      return { scopes: new Set(payload.scope.split(' ')) };
+      return { scopes: new Set(payload.scope.split(' ')), subject: payload.sub };
     } catch (error) {
       if (error instanceof CallerStatusUnavailable) throw error;
       return null;
