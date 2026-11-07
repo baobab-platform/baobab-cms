@@ -1,5 +1,8 @@
+# BA-SEC-DEP-001: approved dependency and security maintenance policy v1.0.
+# Repository-specific declared manifests; protected runtime authority unchanged.
+# Security updates are advisory-driven, independent of routine version cadence.
+# No target-branch override, blanket ignore, or unscoped update group.
 version: 2
-
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -9,16 +12,15 @@ updates:
       time: "06:00"
       timezone: "Africa/Johannesburg"
     open-pull-requests-limit: 5
-    groups:
-      actions-minor-patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
     labels: ["dependencies", "github-actions"]
     commit-message:
       prefix: "chore"
-      prefix-development: "chore"
       include: "scope"
-    target-branch: "main"
+    groups:
+      github-actions-routine:
+        applies-to: "version-updates"
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -27,19 +29,57 @@ updates:
       day: "monday"
       time: "06:15"
       timezone: "Africa/Johannesburg"
-    open-pull-requests-limit: 10
-    groups:
-      # Payload packages must move together at one exact version (they peer-pin
-      # each other), so they are grouped and reviewed as a single change.
-      payload:
-        patterns: ["payload", "@payloadcms/*"]
-      npm-minor-patch:
-        patterns: ["*"]
-        exclude-patterns: ["payload", "@payloadcms/*"]
-        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
     labels: ["dependencies", "javascript"]
     commit-message:
       prefix: "chore"
-      prefix-development: "chore"
       include: "scope"
-    target-branch: "main"
+    groups:
+      payload-minor-patch:
+        applies-to: "version-updates"
+        patterns: ["payload", "@payloadcms/*"]
+        update-types: ["minor", "patch"]
+      npm-minor-patch:
+        applies-to: "version-updates"
+        patterns: ["*"]
+        exclude-patterns: ["payload", "@payloadcms/*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Africa/Johannesburg"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:45"
+      timezone: "Africa/Johannesburg"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/.devcontainer"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Africa/Johannesburg"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
