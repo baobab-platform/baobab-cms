@@ -84,3 +84,25 @@ Postgres service container, creates the `payload` schema, and runs
 `npm run reconcile`. A migration that doesn't apply cleanly, or that
 schema-generation didn't actually produce, fails CI (ADR-0019 §96,
 "deployment gate").
+
+## Scoped content uniqueness (ADR-0012 and ADR-0021)
+
+Migration `20261109_190001_scoped_uniqueness` establishes **database**
+uniqueness for `pages(tenant_id, digital_estate_id, locale, slug)`
+and `site_configurations(tenant_id, digital_estate_id, locale, kind)`
+using PostgreSQL 17 `NULLS NOT DISTINCT`. Request-time Payload field
+validation is not atomic; the index refuses concurrent duplicate creation
+even when estate or locale is null.
+
+This migration **intentionally fails** when existing rows have duplicate
+scoped keys. Inspect the duplicates, reconcile them through canonical
+editorial governance (preserve original content identity/history), and
+rerun the migration; never delete content automatically to force the
+index through. The migration snapshot includes the indexes and their
+`nullsNotDistinct` semantics. Schema regeneration must preserve these
+invariants. `scripts/qualification/pg17-scoped-uniqueness.sql` runs
+inside the disposable PG17 CI gate and asserts both duplicate rejection
+and distinct-locale acceptance with a transaction rollback.
+
+The `down()` migration drops the two indexes only; it does not alter
+tenant ownership, content records or canonical identities.
