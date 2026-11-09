@@ -1,6 +1,4 @@
 import type { CollectionConfig } from 'payload';
-import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
-import { CanonicalEventType } from '../baobab/events/types.js';
 import { platformAdminOnlyAccess } from '../baobab/tenancy/access.js';
 import { tryResolveContext } from '../baobab/context/resolve.js';
 
@@ -26,21 +24,11 @@ const Tenants: CollectionConfig = {
     update: platformAdminOnlyAccess().update,
     delete: platformAdminOnlyAccess().delete,
   },
-  hooks: {
-    afterChange: [
-      canonicalAfterChangeHook({
-        canonicalEntityType: 'TENANT',
-        eventTypeFor: (operation) =>
-          operation === 'create' ? CanonicalEventType.CONTENT_CREATED : CanonicalEventType.CONTENT_UPDATED,
-      }),
-    ],
-    afterDelete: [
-      canonicalAfterDeleteHook({
-        canonicalEntityType: 'TENANT',
-        eventTypeFor: () => CanonicalEventType.CONTENT_ARCHIVED,
-      }),
-    ],
-  },
+  // CP-owned resource projection: CMS has no authority to originate a
+  // canonical tenant/organisation/estate/market lifecycle event. The
+  // Control Plane is the source of such events; CMS content records are
+  // independently event-producing under ADR-0018.
+
   fields: [
     {
       name: 'name',
