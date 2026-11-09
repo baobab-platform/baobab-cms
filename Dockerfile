@@ -8,7 +8,10 @@
 
 FROM node:24.21.0-alpine3.24@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
+# The pinned Node base digest currently ships Alpine musl/zlib revisions
+# with fixable high-severity CVEs. Apply current Alpine security fixes
+# before adding the compatibility package; Trivy remains authoritative.
+RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
 
 FROM base AS deps
 COPY package.json package-lock.json ./
@@ -40,6 +43,8 @@ COPY --from=build /app/public ./public
 COPY --from=build --chown=payload:nodejs /app/.next/standalone ./
 COPY --from=build --chown=payload:nodejs /app/.next/static ./.next/static
 
+COPY --chown=payload:nodejs scripts/check-runtime-env.mjs ./scripts/check-runtime-env.mjs
+
 USER payload
 EXPOSE 3000
 
@@ -47,4 +52,4 @@ EXPOSE 3000
 # binds to (HOSTNAME, else loopback) so the check follows the runtime's network.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD ["node", "-e", "const h = process.env.HOSTNAME; const host = !h || h === '0.0.0.0' ? '127.0.0.1' : h; fetch('http://' + host + ':' + (process.env.PORT || 3000) + '/api/health/live').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node ./scripts/check-runtime-env.mjs && exec node server.js"]
