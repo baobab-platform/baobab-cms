@@ -5,6 +5,18 @@ import { canonicalIdField } from '../baobab/identity/field.js';
 import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
 import { CanonicalEventType } from '../baobab/events/types.js';
 
+import { createPublicationGuard } from '../baobab/authorization/publication.js';
+
+// Product editorial REVIEW remains non-public draft state for authorization.
+// Live transitions still require both publisher role and content.publish.
+const productGuard = createPublicationGuard({
+  readState: (value) => {
+    if (value === 'REVIEW') return 'DRAFT';
+    if (value === 'DRAFT' || value === 'PUBLISHED' || value === 'UNPUBLISHED' || value === 'ARCHIVED') return value;
+    return undefined;
+  },
+});
+
 /**
  * Editorial product content (ADR-0015 §12-13). This is deliberately NOT a
  * clone of a commerce product: it carries only Payload-owned editorial
@@ -23,6 +35,8 @@ const ProductContent: CollectionConfig = {
   },
   access: tenantScopedAccess({ writeCapability: 'content.editorial-product' }),
   hooks: {
+    beforeChange: [productGuard.beforeChange],
+    beforeDelete: [productGuard.beforeDelete],
     afterChange: [
       canonicalAfterChangeHook<{
         id: string | number;

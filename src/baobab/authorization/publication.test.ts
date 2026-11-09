@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import Pages from '../../collections/Pages.js';
+import ProductContent from '../../collections/ProductContent.js';
 import Users from '../../collections/Users.js';
 import SiteConfigurations from '../../collections/SiteConfigurations.js';
 import PortfolioCompanies from '../../collections/PortfolioCompanies.js';
@@ -166,5 +167,27 @@ describe('createPublicationGuard for pages', () => {
     expect(() =>
       strict.beforeChange({ data: { status: 'published' }, originalDoc: { status: 'draft' }, operation: 'update', req: req(actor([])), collection: {} as never, context: {} as never }),
     ).toThrow(PublicationDeniedError);
+  });
+});
+
+describe('ADR-0015 product editorial publication authorization', () => {
+  const beforeChange = ProductContent.hooks!.beforeChange![0];
+  const runProduct = (user: U | null, data: Record<string, unknown>, originalDoc?: Record<string, unknown>) =>
+    () => beforeChange({ operation: originalDoc ? 'update' : 'create',
+      data, originalDoc, req: req(user), collection: ProductContent, context: {} as never } as never);
+
+  it('requires publish privilege for product editorial publication', () => {
+    expect(runProduct(actor(['AUTHOR']), { publicationState: 'REVIEW' })).not.toThrow();
+    expect(runProduct(actor(['EDITOR']), { publicationState: 'PUBLISHED' }, { publicationState: 'REVIEW' }))
+      .toThrow(PublicationDeniedError);
+    expect(runProduct(actor(['EDITOR', 'PUBLISHER']), { publicationState: 'PUBLISHED' }, { publicationState: 'REVIEW' }))
+      .not.toThrow();
+  });
+  it('denies editing published product editorial content without publisher role', () => {
+    expect(runProduct(actor(['EDITOR']), { headline: 'changed' }, { publicationState: 'PUBLISHED' }))
+      .toThrow(PublicationDeniedError);
+  });
+  it('applies the same deletion guard as other editorial collections', () => {
+    expect(ProductContent.hooks?.beforeDelete?.length).toBeGreaterThan(0);
   });
 });
