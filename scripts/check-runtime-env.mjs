@@ -1,3 +1,4 @@
+import { URL } from 'node:url';
 import process from 'node:process';
 /**
  * ADR-0011 / ADR-0020 — validate production runtime configuration before
