@@ -72,8 +72,21 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      rabbitmq:
+        image: rabbitmq:4.1-management
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
     env:
       DATABASE_URL: postgresql://payload:payload@localhost:5432/cms_pg17_qualification
+      RABBITMQ_URL: amqp://guest:guest@127.0.0.1:5672
       PAYLOAD_SECRET: ci-migration-check-secret
       BAOBAB_ENVIRONMENT: ci
       CMS_PG17_COMPONENT_QUALIFICATION: synthetic-disposable
@@ -94,6 +107,9 @@ jobs:
       - name: Verify persisted content from a separate Payload process
         timeout-minutes: 3
         run: npx tsx scripts/qualification/pg17-content.ts verify
+      - name: Independently qualify RabbitMQ and two estate receipts against PostgreSQL 17
+        timeout-minutes: 4
+        run: npx tsx scripts/qualification/pg17-independent-delivery.ts
       - name: Reconciliation smoke check
         run: npm run reconcile
       - name: Exercise disposable provider fixture CLI against actual PG17
