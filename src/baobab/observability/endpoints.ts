@@ -3,14 +3,16 @@ import { summarizeHealth, type DependencyHealth } from './health.js';
 
 async function checkDatabase(req: PayloadRequest): Promise<DependencyHealth> {
   try {
-    await req.payload.find({ collection: 'tenants', limit: 1, depth: 0, req });
+    // Health must actually exercise persistence, not be short-circuited by
+    // anonymous tenant collection access (ADR-0020 §52-55).
+    await req.payload.find({ collection: 'tenants', limit: 1, depth: 0, overrideAccess: true, req });
     return { name: 'database', status: 'ok', critical: true };
-  } catch (error) {
+  } catch {
     return {
       name: 'database',
       status: 'unavailable',
       critical: true,
-      detail: error instanceof Error ? error.message : String(error),
+      detail: 'Database dependency unavailable',
     };
   }
 }
@@ -20,6 +22,7 @@ async function checkOutboxBacklog(req: PayloadRequest): Promise<DependencyHealth
     const backlog = await req.payload.count({
       collection: 'outbox',
       where: { status: { in: ['FAILED_RETRYABLE', 'FAILED_TERMINAL'] } },
+      overrideAccess: true,
       req,
     });
     // A growing backlog is a degraded signal, never a reason to report the
@@ -32,7 +35,7 @@ async function checkOutboxBacklog(req: PayloadRequest): Promise<DependencyHealth
       name: 'outbox',
       status: 'degraded',
       critical: false,
-      detail: error instanceof Error ? error.message : String(error),
+      detail: 'Outbox state unavailable',
     };
   }
 }
