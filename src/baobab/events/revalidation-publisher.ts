@@ -9,8 +9,8 @@ import type { EventPublisher } from './publisher.js';
  * or one of the five singleton content keys. No content is sent, so a leaked
  * request reveals nothing about the change beyond what is being refreshed.
  *
- * - Scoped: only events for the configured tenant are delivered; others are
- *   ignored as successful no-ops (they are not this estate's business).
+ * - Scoped: only events for the configured tenant are delivered; unrelated
+ *   events fail visibly rather than being falsely acknowledged as published.
  * - Idempotent: revalidating twice is harmless. The event id is sent as an
  *   Idempotency-Key for diagnostics.
  * - Failure classes: network, timeout, 429, 5xx are retryable. 400, 401, 403
@@ -82,9 +82,15 @@ export class NabholdRevalidationPublisher implements EventPublisher {
   }
 
   async publish(envelope: CanonicalEventEnvelope): Promise<void> {
-    if (envelope.tenantId !== this.config.tenantId) return;
+    // This legacy publisher is not the canonical broker. A silent no-op here
+    // would cause the shared dispatcher to mark an undelivered event PUBLISHED.
+    if (envelope.tenantId !== this.config.tenantId) {
+      throw new RevalidationDeliveryError('revalidation tenant mismatch', true);
+    }
     const body = toRevalidateRequest(envelope);
-    if (!body) return;
+    if (!body) {
+      throw new RevalidationDeliveryError('unsupported legacy revalidation event', true);
+    }
 
     let response: Response;
     try {

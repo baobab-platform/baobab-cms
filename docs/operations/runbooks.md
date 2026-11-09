@@ -55,6 +55,28 @@ runbooks are not written yet — no such deployment exists (see
   field for the row (Payload Admin, or `payload.find({ collection:
   'outbox', where: { status: { equals: 'FAILED_TERMINAL' } } })`).
 
+### Canonical broker confirmations and legacy estate revalidation
+
+- The canonical RabbitMQ worker returns a successful publication only after
+  the broker's publisher confirmation. A failed/unknown confirm leaves the
+  outbox eligible for replay; consumers must deduplicate by canonical event ID.
+  This is an at-least-once contract, **not** an exactly-once guarantee.
+- The Nabhold-only `scripts/outbox/dispatch-nabhold.ts` bridge is a **legacy,
+  development-only exclusive worker**. It is blocked in production, has a
+  per-tenant status/requeue selector, and requires
+  `BAOBAB_LOCAL_OUTBOX_OWNER=nabhold-revalidation` for any mutating run.
+  Example for a disposable local-only session:
+  `BAOBAB_LOCAL_OUTBOX_OWNER=nabhold-revalidation NABHOLD_REVALIDATE_URL=http://localhost:3000/api/revalidate NABHOLD_REVALIDATE_SECRET=<local-dev-secret> npx tsx scripts/outbox/dispatch-nabhold.ts`.
+- **Do not run this legacy worker concurrently with `npm run outbox:dispatch`.**
+  Both still consume the same canonical outbox publication status. Revalidation
+  has not yet been separated into its own durable destination subscription, so
+  this legacy path cannot qualify canonical-broker + estate dual delivery.
+- An unsupported event or tenant mismatch now becomes a visible terminal
+  failure rather than a successful no-op. Inspect and reconcile affected
+  rows: never manually claim delivery without an independently confirmed
+  destination acknowledgement. Provider-neutral subscriptions and signed
+  revalidation remain pending under ADR-0021.
+
 ## Reconciliation
 
 ```bash

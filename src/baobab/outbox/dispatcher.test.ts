@@ -7,6 +7,8 @@ import type { CanonicalEventEnvelope } from '../events/types.js';
 
 interface FakeDoc {
   id: string;
+  eventId?: string;
+  tenant?: string;
   status: string;
   attemptCount: number;
   nextAttemptAt?: string;
@@ -151,4 +153,53 @@ describe('runOutboxDispatchCycle — ADR-0018 CT-003/CT-004/CT-006/CT-007', () =
     expect(text).toContain('PUBLISHING');
     expect(text).toContain('2026-10-09T11:59:00.000Z');
   });
+  it('adds an authorised tenant predicate to the database query before selecting work', async () => {
+    let query: unknown;
+    const payload = {
+      async find(args: { where: unknown }) { query = args.where; return { docs: [] }; },
+    } as unknown as Payload;
+    const result = await runOutboxDispatchCycle({
+      payload, publisher: new AlwaysSucceedsPublisher(), tenantId: 'tenant-a',
+    });
+    expect(result.processed).toBe(0);
+    expect(JSON.stringify(query)).toContain('"tenant":{"equals":"tenant-a"}');
+    expect(JSON.stringify(query)).toContain('FAILED_RETRYABLE');
+  });
+
+  it('refuses a missing tenant selector on a tenant-partitioned worker', async () => {
+    await expect(runOutboxDispatchCycle({
+      payload: makeFakePayload([], new Date()),
+      publisher: new AlwaysSucceedsPublisher(),
+      tenantId: '  ',
+    })).rejects.toThrow(/empty tenant/);
+  });
+
+  it('dead-letters a wrong-tenant envelope rather than acknowledging it as published', async () => {
+    const wrong = envelope('e1');
+    const docs: FakeDoc[] = [{
+      id: '1', status: OutboxStatus.PENDING, attemptCount: 0,
+      envelope: { ...wrong, tenantId: 'tenant-b' },
+    }];
+    const publisher = new AlwaysSucceedsPublisher();
+    const result = await runOutboxDispatchCycle({
+      payload: makeFakePayload(docs, new Date()), publisher, tenantId: 'tenant-a',
+    });
+    expect(result.deadLettered).toBe(1);
+    expect(result.published).toBe(0);
+    expect(docs[0].status).toBe(OutboxStatus.FAILED_TERMINAL);
+    expect(docs[0].lastError).toMatch(/integrity mismatch/);
+    expect(publisher.published).toHaveLength(0);
+  });
+
+  it('rejects an outbox identity mismatch before invoking its publisher', async () => {
+    const docs: FakeDoc[] = [{
+      id: '1', status: OutboxStatus.PENDING, attemptCount: 0,
+      eventId: 'other-event', tenant: 'tenant-a', envelope: envelope('e1'),
+    } as FakeDoc];
+    const publisher = new AlwaysSucceedsPublisher();
+    const result = await runOutboxDispatchCycle({ payload: makeFakePayload(docs, new Date()), publisher });
+    expect(result.deadLettered).toBe(1);
+    expect(publisher.published).toHaveLength(0);
+  });
+
 });
