@@ -47,7 +47,9 @@ export const singletonValidator: TextFieldSingleValidation = async (value, { req
   // siblingData. tenantOwnedField assigns the tenant only at beforeChange,
   // AFTER this validator; previously absent tenant skipped uniqueness.
   const context = tryResolveContext(req);
-  const tenantId = context?.kind === 'tenant' ? context.tenantId : rel(data?.tenant);
+  const tenantId = context?.kind === 'tenant'
+    ? context.tenantId
+    : context?.kind === 'platform' ? rel(data?.tenant) : undefined;
   if (!tenantId) return 'Cannot verify singleton uniqueness without a canonical tenant';
   const estateId = rel(data?.digitalEstate);
 
