@@ -1,4 +1,4 @@
-import type { Payload } from 'payload';
+import type { Payload, Where } from 'payload';
 import type { EventPublisher } from '../events/publisher.js';
 import type { CanonicalEventEnvelope } from '../events/types.js';
 import { computeBackoffMs, decideFailureOutcome, DEFAULT_RETRY_POLICY, type RetryPolicy } from './retry.js';
@@ -49,7 +49,7 @@ export async function runOutboxDispatchCycle(params: RunOutboxDispatchCycleParam
   if (params.tenantId !== undefined && params.tenantId.trim() === '') {
     throw new Error('A tenant-scoped dispatch cannot use an empty tenant id');
   }
-  const dueWhere = {
+  const dueWhere: Where = {
     or: [
       { status: { equals: OutboxStatus.PENDING } },
       { and: [{ status: { equals: OutboxStatus.PUBLISHING } }, { updatedAt: { less_than: staleBefore } }] },
