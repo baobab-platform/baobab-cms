@@ -8,7 +8,10 @@
 
 FROM node:24.21.0-alpine3.24@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
+# The pinned Node base digest currently ships Alpine musl/zlib revisions
+# with fixable high-severity CVEs. Apply current Alpine security fixes
+# before adding the compatibility package; Trivy remains authoritative.
+RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
 
 FROM base AS deps
 COPY package.json package-lock.json ./
