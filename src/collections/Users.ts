@@ -77,7 +77,7 @@ const Users: CollectionConfig = {
       access: { update: platformAdministratorOnlyField },
       type: 'text',
       hasMany: true,
-      admin: { description: 'Authorized digital-estate bindings. Empty = unrestricted within tenant.' },
+      admin: { description: 'Authorized digital-estate bindings. Empty grants no estate-specific authority (ADR-0017).' },
     },
     { name: 'marketIds',
       access: { update: platformAdministratorOnlyField }, type: 'text', hasMany: true },
