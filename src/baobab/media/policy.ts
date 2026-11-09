@@ -66,6 +66,15 @@ export function buildTenantScopedStorageKey(params: {
   canonicalMediaId: string;
   filename: string;
 }): string {
-  const safeName = params.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-  return `tenants/${params.tenantId}/media/${params.canonicalMediaId}/${safeName}`;
+  // Object-store prefixes are not an authority boundary, but must never
+  // accept traversal or ambiguous identity segments from external callers.
+  const safeIdentity = (value: string, name: string) => {
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(value) || value === '..') {
+      throw new Error(`Invalid ${name} in media storage key`);
+    }
+    return value;
+  };
+  const safeName = params.filename.split(/[\\/]/).pop()?.replace(/[^a-zA-Z0-9._-]/g, '_');
+  if (!safeName || safeName === '.' || safeName === '..') throw new Error('Invalid media filename');
+  return `tenants/${safeIdentity(params.tenantId, 'tenant')}/media/${safeIdentity(params.canonicalMediaId, 'canonical media ID')}/${safeName}`;
 }
