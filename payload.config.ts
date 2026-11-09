@@ -48,7 +48,7 @@ export default buildConfig({
       connectionTimeoutMillis: 5000,
       ssl:
         process.env.PGSSLMODE === 'require'
-          ? { rejectUnauthorized: false }
+          ? { rejectUnauthorized: true }
           : undefined,
     },
     schemaName: 'payload',
