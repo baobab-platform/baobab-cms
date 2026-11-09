@@ -6,10 +6,16 @@ export function isPublicationEligible(record: ResolvableRecord, previewMode: boo
   return record.publicationState === 'PUBLISHED';
 }
 
-/** ADR-0014 §43-44 — temporal validity is checked before applying inheritance. */
+/** Reject invalid/missing temporal boundaries rather than silently treating NaN as eligible. */
 export function isTemporallyEligible(record: ResolvableRecord, atISO: string): boolean {
   const at = Date.parse(atISO);
-  if (record.effectiveFrom && Date.parse(record.effectiveFrom) > at) return false;
-  if (record.effectiveTo && Date.parse(record.effectiveTo) < at) return false;
+  if (!Number.isFinite(at)) return false;
+  const from = record.effectiveFrom === undefined ? undefined : Date.parse(record.effectiveFrom);
+  const to = record.effectiveTo === undefined ? undefined : Date.parse(record.effectiveTo);
+  if (from !== undefined && !Number.isFinite(from)) return false;
+  if (to !== undefined && !Number.isFinite(to)) return false;
+  if (from !== undefined && to !== undefined && from > to) return false;
+  if (from !== undefined && at < from) return false;
+  if (to !== undefined && at > to) return false;
   return true;
 }
