@@ -84,6 +84,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+      - name: Check migration registry and schema snapshot integrity
+        run: node scripts/check-migrations.mjs
       - name: Create payload schema
         run: PGPASSWORD=payload psql -h localhost -U payload -d cms_pg17_qualification -c "CREATE SCHEMA IF NOT EXISTS payload AUTHORIZATION payload;"
       - name: Apply all committed migrations to a fresh database
