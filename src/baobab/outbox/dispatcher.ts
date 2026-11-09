@@ -15,6 +15,8 @@ export interface RunOutboxDispatchCycleParams {
    * Delivery is at-least-once and consumers are idempotent (ADR-0018 §38-41).
    */
   publishingLeaseMs?: number;
+  /** Optional authorised tenant partition; required for estate-specific workers. */
+  tenantId?: string;
 }
 
 export interface OutboxDispatchCycleResult {
@@ -26,6 +28,8 @@ export interface OutboxDispatchCycleResult {
 
 interface OutboxDoc {
   id: string;
+  eventId?: string;
+  tenant?: string;
   envelope: CanonicalEventEnvelope;
   attemptCount?: number;
 }
@@ -42,24 +46,29 @@ export async function runOutboxDispatchCycle(params: RunOutboxDispatchCycleParam
   const { payload, publisher, batchSize = 25, retryPolicy = DEFAULT_RETRY_POLICY } = params;
   const now = params.now ?? new Date();
   const staleBefore = new Date(now.getTime() - (params.publishingLeaseMs ?? 5 * 60 * 1000)).toISOString();
+  if (params.tenantId !== undefined && params.tenantId.trim() === '') {
+    throw new Error('A tenant-scoped dispatch cannot use an empty tenant id');
+  }
+  const dueWhere = {
+    or: [
+      { status: { equals: OutboxStatus.PENDING } },
+      { and: [{ status: { equals: OutboxStatus.PUBLISHING } }, { updatedAt: { less_than: staleBefore } }] },
+      {
+        and: [
+          { status: { equals: OutboxStatus.FAILED_RETRYABLE } },
+          { nextAttemptAt: { less_than_equal: now.toISOString() } },
+        ],
+      },
+    ],
+  };
 
   const due = await payload.find({
     collection: 'outbox',
-    where: {
-      or: [
-        { status: { equals: OutboxStatus.PENDING } },
-        { and: [{ status: { equals: OutboxStatus.PUBLISHING } }, { updatedAt: { less_than: staleBefore } }] },
-        {
-          and: [
-            { status: { equals: OutboxStatus.FAILED_RETRYABLE } },
-            { nextAttemptAt: { less_than_equal: now.toISOString() } },
-          ],
-        },
-      ],
-    },
+    where: params.tenantId ? { and: [{ tenant: { equals: params.tenantId } }, dueWhere] } : dueWhere,
     limit: batchSize,
     sort: 'createdAt',
     depth: 0,
+    overrideAccess: true,
   });
 
   const result: OutboxDispatchCycleResult = { processed: 0, published: 0, retried: 0, deadLettered: 0 };
@@ -67,14 +76,25 @@ export async function runOutboxDispatchCycle(params: RunOutboxDispatchCycleParam
   for (const doc of due.docs as unknown as OutboxDoc[]) {
     result.processed += 1;
 
-    await payload.update({ collection: 'outbox', id: doc.id, data: { status: OutboxStatus.PUBLISHING } });
+    // A malformed row must not be acknowledged by the wrong tenant/worker.
+    // Do not permit a source-field/envelope mismatch to escape inspection.
+    // This is an additional check; query partitioning is the primary filter.
+    await payload.update({ collection: 'outbox', id: doc.id, data: { status: OutboxStatus.PUBLISHING }, overrideAccess: true });
 
     try {
+      if (!doc.envelope || typeof doc.envelope.eventId !== 'string' ||
+          typeof doc.envelope.tenantId !== 'string' || !doc.envelope.tenantId ||
+          (doc.eventId !== undefined && doc.eventId !== doc.envelope.eventId) ||
+          (doc.tenant !== undefined && doc.tenant !== doc.envelope.tenantId) ||
+          (params.tenantId !== undefined && doc.envelope.tenantId !== params.tenantId)) {
+        throw Object.assign(new Error('Outbox identity/tenant integrity mismatch'), { permanent: true });
+      }
       await publisher.publish(doc.envelope);
       await payload.update({
         collection: 'outbox',
         id: doc.id,
         data: { status: OutboxStatus.PUBLISHED, publishedAt: new Date().toISOString() },
+        overrideAccess: true,
       });
       result.published += 1;
     } catch (error) {
@@ -93,8 +113,9 @@ export async function runOutboxDispatchCycle(params: RunOutboxDispatchCycleParam
           status: outcome,
           attemptCount,
           nextAttemptAt,
-          lastError: error instanceof Error ? error.message : String(error),
+          lastError: error instanceof Error ? error.message : 'Publisher failed',
         },
+        overrideAccess: true,
       });
 
       if (outcome === 'FAILED_TERMINAL') result.deadLettered += 1;
