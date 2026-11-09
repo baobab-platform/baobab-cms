@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import Media from '../../collections/Media.js';
 import { isMimeTypeAllowed, isSizeAllowed, containsUnsafeSvgMarkup, buildTenantScopedStorageKey } from './policy.js';
 
 describe('media upload policy — ADR-0016 §38-40', () => {
@@ -34,5 +35,29 @@ describe('buildTenantScopedStorageKey — ADR-0016 §15', () => {
     const keyA = buildTenantScopedStorageKey({ tenantId: 'tenant-a', canonicalMediaId: 'm1', filename: 'logo.png' });
     const keyB = buildTenantScopedStorageKey({ tenantId: 'tenant-b', canonicalMediaId: 'm1', filename: 'logo.png' });
     expect(keyA).not.toBe(keyB);
+  });
+});
+
+describe('ADR-0016 media upload boundary', () => {
+  const validate = Media.hooks!.beforeValidate![0];
+  const upload = (mimetype: string, data: Buffer, size = data.byteLength) =>
+    () => validate({ req: { file: { mimetype, data, size } }, data: {} } as never);
+
+  it('rejects active SVG markup and opaque SVG uploads before storage', () => {
+    expect(upload('image/svg+xml', Buffer.from('<svg onload="alert(1)"/>'))).toThrow(/unsafe/);
+    expect(() => validate({ req: { file: { mimetype: 'image/svg+xml', size: 9 } }, data: {} } as never))
+      .toThrow(/uninspectable/);
+    expect(upload('image/svg+xml', Buffer.from('<svg><circle r="4"/></svg>'))).not.toThrow();
+  });
+  it('enforces MIME and size policy at the Payload collection boundary', () => {
+    expect(upload('application/x-msdownload', Buffer.from('exe'))).toThrow(/MIME/);
+    expect(upload('image/png', Buffer.from('abc'), 0)).toThrow(/size/);
+    expect(upload('image/png', Buffer.from('abc'), 30 * 1024 * 1024)).toThrow(/size/);
+  });
+  it('rejects path traversal in identity segments', () => {
+    expect(() => buildTenantScopedStorageKey({ tenantId: '../other', canonicalMediaId: 'media-1', filename: 'ok.png' }))
+      .toThrow(/tenant/);
+    expect(() => buildTenantScopedStorageKey({ tenantId: 'tenant-a', canonicalMediaId: '..', filename: 'ok.png' }))
+      .toThrow(/canonical media ID/);
   });
 });
