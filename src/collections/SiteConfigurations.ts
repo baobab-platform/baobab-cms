@@ -1,4 +1,5 @@
 import type { TextFieldSingleValidation } from 'payload';
+import { tryResolveContext } from '../baobab/context/resolve.js';
 import { corporateCollection, validateHttpUrl } from './corporate/shared.js';
 
 /**
@@ -36,14 +37,20 @@ export const validateLinkTarget = (value: string | null | undefined): true | str
 const isKind = (kind: SiteConfigurationKind) => (data: { kind?: string }) => data?.kind === kind;
 
 /** Exactly one record per (tenant, digital estate, locale, kind). */
-const singletonValidator: TextFieldSingleValidation = async (value, { req, siblingData, id }) => {
+export const singletonValidator: TextFieldSingleValidation = async (value, { req, siblingData, id }) => {
   if (!value || !(SITE_CONFIGURATION_KINDS as readonly string[]).includes(value)) {
     return `Kind must be one of ${SITE_CONFIGURATION_KINDS.join(', ')}`;
   }
   const data = siblingData as { tenant?: unknown; digitalEstate?: unknown; locale?: string } | undefined;
   const rel = (v: unknown) => (typeof v === 'object' && v !== null ? (v as { id?: string }).id : (v as string | undefined));
-  const tenantId = rel(data?.tenant);
-  if (!tenantId) return true;
+  // Resolve ownership from the trusted request, not an untrusted
+  // siblingData. tenantOwnedField assigns the tenant only at beforeChange,
+  // AFTER this validator; previously absent tenant skipped uniqueness.
+  const context = tryResolveContext(req);
+  const tenantId = context?.kind === 'tenant'
+    ? context.tenantId
+    : context?.kind === 'platform' ? rel(data?.tenant) : undefined;
+  if (!tenantId) return 'Cannot verify singleton uniqueness without a canonical tenant';
   const estateId = rel(data?.digitalEstate);
 
   const clash = await req.payload.find({
