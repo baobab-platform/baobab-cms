@@ -4,7 +4,7 @@ import { tenantScopedAccess } from '../baobab/tenancy/access.js';
 import { canonicalIdField } from '../baobab/identity/field.js';
 import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
 import { CanonicalEventType } from '../baobab/events/types.js';
-import { MediaAccessClass, MediaLifecycleState, DEFAULT_MEDIA_UPLOAD_POLICY } from '../baobab/media/policy.js';
+import { MediaAccessClass, MediaLifecycleState, DEFAULT_MEDIA_UPLOAD_POLICY, containsUnsafeSvgMarkup, isMimeTypeAllowed, isSizeAllowed } from '../baobab/media/policy.js';
 
 /**
  * Governed media resource (ADR-0016). Payload owns editorial metadata;
@@ -27,11 +27,21 @@ const Media: CollectionConfig = {
   hooks: {
     beforeValidate: [
       ({ req, data }) => {
-        const size = req.file?.size;
-        if (size !== undefined && size > DEFAULT_MEDIA_UPLOAD_POLICY.maxSizeBytes) {
-          throw new Error(
-            `File exceeds the maximum allowed size of ${DEFAULT_MEDIA_UPLOAD_POLICY.maxSizeBytes} bytes (ADR-0016 §38).`,
-          );
+        const file = req.file as { size?: number; mimetype?: string; data?: Buffer } | undefined;
+        if (file) {
+          if (file.size !== undefined && !isSizeAllowed(file.size)) {
+            throw new Error('Media upload size is invalid or exceeds the governed limit (ADR-0016).');
+          }
+          if (file.mimetype && !isMimeTypeAllowed(file.mimetype)) {
+            throw new Error('Media upload MIME type is not permitted (ADR-0016).');
+          }
+          // An SVG must be inspectable before accepting it. This is a
+          // heuristic safety fence, not a substitute for a content scanner.
+          if (file.mimetype?.toLowerCase() === 'image/svg+xml') {
+            if (!file.data || containsUnsafeSvgMarkup(file.data.toString('utf-8'))) {
+              throw new Error('SVG upload is uninspectable or contains unsafe markup.');
+            }
+          }
         }
         return data;
       },
