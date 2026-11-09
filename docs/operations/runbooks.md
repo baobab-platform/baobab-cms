@@ -77,6 +77,37 @@ runbooks are not written yet — no such deployment exists (see
   destination acknowledgement. Provider-neutral subscriptions and signed
   revalidation remain pending under ADR-0021.
 
+## Independently durable estate delivery receipts (ADR-0018)
+
+The canonical RabbitMQ outbox status is **not** an estate revalidation
+acknowledgment. The former legacy Nabhold worker has been retired; do not
+restart it. Use the new independently scoped worker:
+`npm run outbox:dispatch-estate` with a pre-registered, explicitly enabled
+`cms_delivery.bindings` row and matching `CMS_REVALIDATION_*` environment
+values. These development-only bindings must not be interpreted as
+Control Plane approvals or staging/production activations.
+
+For a given event ID, inspect **both** `payload.outbox` (canonical
+RabbitMQ confirmation) and `cms_delivery.receipts` (one row for each
+estate destination). A successful broker publish cannot close a failed
+estate receipt, nor vice versa. Check status, attempt count, next attempt,
+lease expiration and acknowledgment metadata for each destination.
+
+Expired PUBLISHING leases are claimed again and duplicate delivery is
+possible. Consumers must implement event-ID deduplication. For a terminal
+receipt, correct the root cause and explicitly requeue only the particular
+event/destination using `requeueEstateDeadLetter`; never bulk-reset
+other destinations or already DELIVERED records. A newly registered
+binding can explicitly backfill a known historical event with
+`backfillEstateReceipt`. The reference SQL, worker configuration,
+negative tests and limits are documented in
+`docs/architecture/adr-0018-independent-delivery.md`.
+
+**Delivery acknowledgment is not cache freshness.** A 2xx response
+must echo the original event ID and be persisted, but final consumer
+readback/caching qualification remains separate. Protected environments
+remain disabled for the new worker.
+
 ## Reconciliation
 
 ```bash

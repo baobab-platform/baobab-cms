@@ -21,7 +21,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "outbox:dispatch-estate": "tsx scripts/outbox/dispatch-estate.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",
