@@ -41,7 +41,7 @@ export const validateScopedSlug: TextFieldSingleValidation = async (value, optio
   const prior = id && (!has('tenant') || !has('digitalEstate') || !has('locale'))
     ? (await req.payload.findByID({
         collection: 'pages', id, depth: 0, overrideAccess: true, req,
-      })) as Record<string, unknown> | null
+      })) as unknown as Record<string, unknown> | null
     : null;
   if (id && (!has('tenant') || !has('digitalEstate') || !has('locale')) && !prior) {
     return 'Cannot verify scope for missing page record';
