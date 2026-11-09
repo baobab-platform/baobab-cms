@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Field } from 'payload';
-import SiteConfigurations, { SITE_CONFIGURATION_KINDS, validateLinkTarget } from './SiteConfigurations.js';
+import SiteConfigurations, { SITE_CONFIGURATION_KINDS, validateLinkTarget, singletonValidator } from './SiteConfigurations.js';
 
 const names = SiteConfigurations.fields.map((f) => ('name' in f ? f.name : undefined));
 
@@ -37,5 +37,34 @@ describe('site-configurations', () => {
   it('holds no legal-identity fields', () => {
     const text = JSON.stringify(names);
     expect(text).not.toMatch(/registration|vat|taxRef|address/i);
+  });
+});
+
+describe('ADR-0021 singleton tenant integrity', () => {
+  it('checks canonical actor tenant instead of trusting a submitted sibling tenant', async () => {
+    let where: unknown;
+    const req = {
+      user: { id: 'editor', tenantId: 'tenant-a' },
+      headers: new Headers(),
+      payload: { async find({ where: query }: { where: unknown }) {
+        where = query;
+        return { totalDocs: 1 };
+      } },
+    };
+    const result = await singletonValidator('navigation', {
+      req, siblingData: { tenant: 'tenant-b', digitalEstate: 'estate-1', locale: 'en' },
+    } as never);
+    expect(result).not.toBe(true);
+    expect(JSON.stringify(where)).toContain('tenant-a');
+    expect(JSON.stringify(where)).not.toContain('tenant-b');
+  });
+
+  it('denies ambiguous ownerless singleton creation rather than bypassing uniqueness', async () => {
+    const result = await singletonValidator('footer', {
+      req: { user: null, headers: new Headers() },
+      siblingData: { locale: 'en' },
+    } as never);
+    expect(result).not.toBe(true);
+    expect(result).toMatch(/canonical tenant/);
   });
 });
