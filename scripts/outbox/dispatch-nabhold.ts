@@ -11,6 +11,7 @@
  *   NABHOLD_REVALIDATE_URL      https URL of the estate's /api/revalidate (http only for localhost)
  *   NABHOLD_REVALIDATE_SECRET   the estate's revalidation bearer secret
  *   NABHOLD_TENANT_CODE         CMS tenant code, default "nabhold"
+ *   BAOBAB_LOCAL_OUTBOX_OWNER  explicit 'nabhold-revalidation' opt-in for development-only exclusive drain
  */
 import { getPayload } from 'payload';
 import config from '../../payload.config.js';
@@ -33,6 +34,10 @@ async function main(): Promise<number> {
   // provider-neutral subscription is required before enabling this in production.
   if (process.env.NODE_ENV === 'production') {
     console.error('Legacy Nabhold revalidation cannot drain the canonical outbox in production.');
+    return 2;
+  }
+  if (!flag('--status') && process.env.BAOBAB_LOCAL_OUTBOX_OWNER !== 'nabhold-revalidation') {
+    console.error('Legacy revalidation requires BAOBAB_LOCAL_OUTBOX_OWNER=nabhold-revalidation; do not run the canonical broker worker concurrently.');
     return 2;
   }
   const payload = await getPayload({ config });
