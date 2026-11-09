@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { validateScopedSlug } from './Pages.js';
 
 function reqForTenant(overrides: Record<string, unknown> = {}) {
-  const find = vi.fn(async () => ({ totalDocs: 0 }));
-  const findByID = vi.fn(async () => null);
+  const find = vi.fn(async (_args: { where: unknown }) => ({ totalDocs: 0 }));
+  const findByID = vi.fn(async (_args: { id: unknown }): Promise<Record<string, unknown> | null> => null);
   const req = {
     user: { id: 'editor', tenantId: 'tenant-a', ...overrides },
     headers: new Headers(),
