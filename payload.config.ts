@@ -96,10 +96,14 @@ export default buildConfig({
         region: process.env.S3_REGION || 'us-east-1',
         endpoint: process.env.S3_ENDPOINT,
         forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== 'false',
-        credentials: {
-          accessKeyId: process.env.S3_ACCESS_KEY_ID || 'minioadmin',
-          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || 'minioadmin',
-        },
+        // Prefer the AWS SDK workload/instance credential chain in production.
+        // Never silently substitute the public MinIO development credentials.
+        ...(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY
+          ? { credentials: {
+              accessKeyId: process.env.S3_ACCESS_KEY_ID,
+              secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+            } }
+          : {}),
       },
     }),
   ],
