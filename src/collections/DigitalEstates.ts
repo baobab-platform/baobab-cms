@@ -2,8 +2,6 @@ import type { CollectionConfig } from 'payload';
 import { tenantOwnedField } from '../baobab/tenancy/fields.js';
 import { tenantScopedAccess } from '../baobab/tenancy/access.js';
 import { canonicalIdField } from '../baobab/identity/field.js';
-import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
-import { CanonicalEventType } from '../baobab/events/types.js';
 
 /**
  * Digital estate (ADR-0012 §4.3, ADR-0014 §14): an independently governed
@@ -17,21 +15,11 @@ const DigitalEstates: CollectionConfig = {
     description: 'Canonical digital estate. Domains route to an estate; they are never its identity (ADR-0012 §25).',
   },
   access: tenantScopedAccess(),
-  hooks: {
-    afterChange: [
-      canonicalAfterChangeHook({
-        canonicalEntityType: 'DIGITAL_ESTATE',
-        eventTypeFor: (operation) =>
-          operation === 'create' ? CanonicalEventType.CONTENT_CREATED : CanonicalEventType.CONTENT_UPDATED,
-      }),
-    ],
-    afterDelete: [
-      canonicalAfterDeleteHook({
-        canonicalEntityType: 'DIGITAL_ESTATE',
-        eventTypeFor: () => CanonicalEventType.CONTENT_ARCHIVED,
-      }),
-    ],
-  },
+  // CP-owned resource projection: CMS has no authority to originate a
+  // canonical tenant/organisation/estate/market lifecycle event. The
+  // Control Plane is the source of such events; CMS content records are
+  // independently event-producing under ADR-0018.
+
   fields: [
     canonicalIdField({ authority: 'control-plane', name: 'canonicalDigitalEstateId', entityType: 'DIGITAL_ESTATE' }),
     tenantOwnedField(),

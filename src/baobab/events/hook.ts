@@ -29,17 +29,23 @@ async function enqueueForDoc<T extends DocLike>(
 
   const tenantId = extractRelationId(doc.tenant);
   if (!tenantId) {
-    req.payload.logger.warn(
-      `Skipping canonical event "${eventType}" for ${options.canonicalEntityType} ${String(doc.id)}: no tenant on document.`,
-    );
-    return;
+    // An editorial mutation without a durable event is not a success.
+    throw new Error(`Cannot enqueue ${eventType}: missing canonical tenant on ${options.canonicalEntityType}`);
+  }
+  // Media uses canonicalMediaId (ADR-0016); all other editorial
+  // collections use canonicalEntityId. Payload-local ids are NEVER
+  // substitutes for cross-engine canonical identity.
+  const canonicalEntityId = doc.canonicalEntityId ||
+    (typeof doc.canonicalMediaId === 'string' ? doc.canonicalMediaId : undefined);
+  if (!canonicalEntityId) {
+    throw new Error(`Cannot enqueue ${eventType}: missing canonical entity identity on ${options.canonicalEntityType}`);
   }
 
   const context = tryResolveContext(req);
 
   const envelope = buildCanonicalEvent({
     eventType,
-    canonicalEntityId: doc.canonicalEntityId ?? String(doc.id),
+    canonicalEntityId,
     canonicalEntityType: options.canonicalEntityType,
     tenantId,
     legalEntityId: extractRelationId(doc.legalEntity),
