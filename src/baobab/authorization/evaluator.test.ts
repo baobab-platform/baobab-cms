@@ -65,6 +65,22 @@ describe('isAuthorized — default-deny (ADR-0017 §29-30)', () => {
     ).toBe(false);
   });
 
+  it('denies estate-scoped operations without an explicit estate grant', () => {
+    for (const actorDigitalEstateIds of [undefined, []]) {
+      expect(isAuthorized({
+        context: tenantContext(),
+        roles: [EditorialRole.CONTENT_ADMINISTRATOR],
+        permission: Permission.PUBLISH,
+        resourceDigitalEstateId: 'estate-a',
+        actorDigitalEstateIds,
+      })).toBe(false);
+    }
+    expect(isAuthorized({
+      context: tenantContext(), roles: [EditorialRole.PUBLISHER], permission: Permission.PUBLISH,
+      resourceDigitalEstateId: 'estate-a', actorDigitalEstateIds: ['estate-a'],
+    })).toBe(true);
+  });
+
   it('a platform context always passes regardless of role', () => {
     expect(isAuthorized({ context: platformContext, roles: [], permission: Permission.ADMINISTER_CONTENT })).toBe(true);
   });
