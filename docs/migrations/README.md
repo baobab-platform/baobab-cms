@@ -71,10 +71,9 @@ covering:
 
 Verify after migrating: every record's `tenant` field is unchanged, no
 record moved between tenants, and relationships/canonical ids survived.
-There is no automated harness for this yet in this repository (the one
-migration that exists so far is the initial schema against an empty
-database, which carries no tenant-movement risk) — build one alongside
-the first migration that changes an existing field.
+Migration integrity is now checked automatically (registry, up/down handlers and snapshots).
+That is **not** a replacement for the multi-tenant data-preservation fixture tests above;
+those tests must accompany migrations that rewrite existing rows.
 
 ## CI gate
 
@@ -84,3 +83,10 @@ Postgres service container, creates the `payload` schema, and runs
 `npm run reconcile`. A migration that doesn't apply cleanly, or that
 schema-generation didn't actually produce, fails CI (ADR-0019 §96,
 "deployment gate").
+
+## Deterministic migration inventory check
+
+Run `node scripts/check-migrations.mjs` before DB migration execution. It rejects missing
+schema snapshots, missing handlers, duplicate names, out-of-order registrations, and
+unregistered or orphaned migration files. CI runs this *before* opening a PostgreSQL
+connection. The separate live PostgreSQL 17 migration gate still verifies actual execution.
