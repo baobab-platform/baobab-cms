@@ -67,12 +67,12 @@ export class InMemoryMappingResolver implements MappingResolver {
 
   private matchesScope(mapping: CanonicalMapping, scope: MappingScope): boolean {
     if (mapping.scope.tenantId !== scope.tenantId) return false;
-    if (scope.digitalEstateId && mapping.scope.digitalEstateId && mapping.scope.digitalEstateId !== scope.digitalEstateId) {
-      return false;
-    }
-    if (scope.marketId && mapping.scope.marketId && mapping.scope.marketId !== scope.marketId) {
-      return false;
-    }
+    // A caller missing a narrower dimension must NOT see mappings scoped
+    // to that legal entity, digital estate, or market (ADR-0013 §15–17).
+    // Broader-scope mappings may still apply in a narrower resolved context.
+    if (mapping.scope.legalEntityId && mapping.scope.legalEntityId !== scope.legalEntityId) return false;
+    if (mapping.scope.digitalEstateId && mapping.scope.digitalEstateId !== scope.digitalEstateId) return false;
+    if (mapping.scope.marketId && mapping.scope.marketId !== scope.marketId) return false;
     return true;
   }
 
