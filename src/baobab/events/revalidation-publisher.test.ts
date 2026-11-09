@@ -43,10 +43,12 @@ describe('NabholdRevalidationPublisher', () => {
     expect(init.redirect).toBe('error');
   });
 
-  it('does nothing for another tenant or an irrelevant event', async () => {
+  it('refuses mismatched tenants and irrelevant events rather than silently acknowledging undelivered records', async () => {
     const f = respond(200);
-    await make(f).publish(env({ tenantId: 'other' }));
-    await make(f).publish(env({ eventType: 'media.created' }));
+    await expect(make(f).publish(env({ tenantId: 'other' })))
+      .rejects.toMatchObject({ permanent: true, message: 'revalidation tenant mismatch' });
+    await expect(make(f).publish(env({ eventType: 'media.created' })))
+      .rejects.toMatchObject({ permanent: true, message: 'unsupported legacy revalidation event' });
     expect(f).not.toHaveBeenCalled();
   });
 
