@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/check-runtime-env.mjs && next start",
     "db:migrate": "payload migrate",
     "db:generate": "payload migrate:create",
     "generate:types": "payload generate:types",
