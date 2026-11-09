@@ -47,7 +47,9 @@ function resolveAuthorizedDimension(params: {
 }): string | undefined {
   const { requested, authorized, dimensionName } = params;
   if (!requested) return undefined;
-  if (authorized && authorized.length > 0 && !authorized.includes(requested)) {
+  // An absent/empty grant list grants NO estate, market or locale authority.
+  // Values from request headers are only selectors; never entitlements (ADR-0012 §31).
+  if (!authorized?.includes(requested)) {
     throw unauthorizedContextSwitch(
       `requested ${dimensionName} "${requested}" is not among the actor's authorized bindings`,
     );

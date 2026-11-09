@@ -57,6 +57,31 @@ describe('resolveContext', () => {
     }
   });
 
+  it.each([
+    ['digital estate', 'x-baobab-digital-estate-id', 'digitalEstateIds'],
+    ['market', 'x-baobab-market-id', 'marketIds'],
+    ['locale', 'x-baobab-locale', 'locales'],
+  ] as const)('denies a requested %s when bindings are absent or empty', (_dimension, header, property) => {
+    const requested = { [header]: 'ungranted' };
+    const base = { id: 'actor-1', tenantId: 'tenant-a' };
+    expect(() => resolveContext(makeRequest(base, requested))).toThrow(ContextResolutionError);
+    expect(() => resolveContext(makeRequest({ ...base, [property]: [] }, requested))).toThrow(ContextResolutionError);
+    expect(tryResolveContext(makeRequest(base, requested))).toBeNull();
+  });
+
+  it.each([
+    ['market', 'x-baobab-market-id', 'marketIds', 'market-a'],
+    ['locale', 'x-baobab-locale', 'locales', 'en'],
+  ] as const)('permits %s only when explicitly bound', (_dimension, header, property, value) => {
+    const context = resolveContext(makeRequest({
+      id: 'actor-1', tenantId: 'tenant-a', [property]: [value],
+    }, { [header]: value }));
+    expect(context.kind).toBe('tenant');
+    if (context.kind === 'tenant') {
+      expect((context as unknown as Record<string, unknown>)[property === 'marketIds' ? 'marketId' : 'locale']).toBe(value);
+    }
+  });
+
   it('generates a correlation id when none is supplied and reuses one that is', () => {
     const req1 = makeRequest({ id: '1', tenantId: 'tenant-a' });
     const context1 = resolveContext(req1);
