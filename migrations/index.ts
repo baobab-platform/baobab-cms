@@ -7,6 +7,7 @@ import * as migration_20261009_073426_drop_singleton_fields from './20261009_073
 import * as migration_20261009_073430_add_estate_shaped_fields from './20261009_073430_add_estate_shaped_fields.js';
 import * as migration_20261009_083520_organisation_control_plane_id from './20261009_083520_organisation_control_plane_id.js';
 import * as migration_20261010_102226_users_reset_password_requested_at from './20261010_102226_users_reset_password_requested_at.js';
+import * as migration_20261109_190001_scoped_uniqueness from './20261109_190001_scoped_uniqueness.js';
 
 export const migrations = [
   {
@@ -53,5 +54,10 @@ export const migrations = [
     up: migration_20261010_102226_users_reset_password_requested_at.up,
     down: migration_20261010_102226_users_reset_password_requested_at.down,
     name: '20261010_102226_users_reset_password_requested_at'
+  },
+  {
+    up: migration_20261109_190001_scoped_uniqueness.up,
+    down: migration_20261109_190001_scoped_uniqueness.down,
+    name: '20261109_190001_scoped_uniqueness',
   },
 ];

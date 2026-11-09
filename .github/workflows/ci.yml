@@ -94,6 +94,8 @@ jobs:
       - name: Verify persisted content from a separate Payload process
         timeout-minutes: 3
         run: npx tsx scripts/qualification/pg17-content.ts verify
+      - name: Verify scoped PostgreSQL 17 unique indexes and negative collisions
+        run: PGPASSWORD=payload psql -h localhost -U payload -d cms_pg17_qualification -v ON_ERROR_STOP=1 -f scripts/qualification/pg17-scoped-uniqueness.sql
       - name: Reconciliation smoke check
         run: npm run reconcile
       - name: Exercise disposable provider fixture CLI against actual PG17
