@@ -31,12 +31,9 @@ export function isAuthorized(request: AuthorizationRequest): boolean {
     return false;
   }
 
-  if (
-    request.resourceDigitalEstateId &&
-    request.actorDigitalEstateIds &&
-    request.actorDigitalEstateIds.length > 0 &&
-    !request.actorDigitalEstateIds.includes(request.resourceDigitalEstateId)
-  ) {
+  // An absent or empty estate grant does not imply all estates within a tenant.
+  // Explicit estate-scoped operations require a matching actor binding.
+  if (request.resourceDigitalEstateId && !request.actorDigitalEstateIds?.includes(request.resourceDigitalEstateId)) {
     return false;
   }
 
