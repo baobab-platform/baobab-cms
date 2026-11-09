@@ -6,6 +6,7 @@ import { canonicalIdField } from '../baobab/identity/field.js';
 import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
 import { CanonicalEventType } from '../baobab/events/types.js';
 import { asPageState, createPublicationGuard } from '../baobab/authorization/publication.js';
+import { tryResolveContext } from '../baobab/context/resolve.js';
 
 /** Publishing always requires explicit editorial authority, including legacy users.
  * Do not infer a role from an existing account or content.management alone. */
@@ -13,28 +14,60 @@ const pageGuard = createPublicationGuard({ stateField: 'status', readState: asPa
 
 type PageStatus = 'draft' | 'published' | 'archived';
 
-/** ADR-0012 §65-66, CT-006 — slugs are scoped to (tenant, digitalEstate, locale), never globally unique. */
-const validateScopedSlug: TextFieldSingleValidation = async (value, options) => {
+/** ADR-0012 §65-66, CT-006: scoped slugs are checked in the canonical tenant.
+ * Tenant assignment runs after field validation on create. Never trust the
+ * client's siblingData. Read omitted update scope from the persisted record.
+ * Request validation is defence in depth; a PG17 unique index must also
+ * enforce concurrent writes (see audit ledger).
+ */
+export const validateScopedSlug: TextFieldSingleValidation = async (value, options) => {
   const { req, siblingData, id } = options;
-  if (!value) return 'Slug is required';
+  if (typeof value !== 'string' || !value.trim()) return 'Slug is required';
 
-  const siblingTenant = (siblingData as { tenant?: unknown } | undefined)?.tenant;
-  const tenantId =
-    typeof siblingTenant === 'object' && siblingTenant !== null ? (siblingTenant as { id: string }).id : siblingTenant;
-  if (!tenantId) return true; // tenant is assigned server-side before this runs on create
+  const context = tryResolveContext(req);
+  if (!context) return 'Cannot verify page slug without an authorised context';
+  const data = (siblingData ?? {}) as Record<string, unknown>;
+  const has = (key: string) => Object.prototype.hasOwnProperty.call(data, key);
+  const rel = (v: unknown): string | undefined => {
+    if (typeof v === 'object' && v !== null) {
+      const idValue = (v as { id?: unknown }).id;
+      return idValue === undefined || idValue === null ? undefined : String(idValue);
+    }
+    return v === undefined || v === null || v === '' ? undefined : String(v);
+  };
 
-  const siblingEstate = (siblingData as { digitalEstate?: unknown } | undefined)?.digitalEstate;
-  const estateId =
-    typeof siblingEstate === 'object' && siblingEstate !== null ? (siblingEstate as { id: string }).id : siblingEstate;
-  const locale = (siblingData as { locale?: string } | undefined)?.locale;
+  // On a partial update the validator cannot treat absent dimensions as
+  // global/unscoped: the caller may only be editing the slug.
+  const prior = id && (!has('tenant') || !has('digitalEstate') || !has('locale'))
+    ? (await req.payload.findByID({
+        collection: 'pages', id, depth: 0, overrideAccess: true, req,
+      })) as unknown as Record<string, unknown> | null
+    : null;
+  if (id && (!has('tenant') || !has('digitalEstate') || !has('locale')) && !prior) {
+    return 'Cannot verify scope for missing page record';
+  }
+
+  const tenantId = context.kind === 'tenant'
+    ? context.tenantId
+    : rel(has('tenant') ? data.tenant : prior?.tenant);
+  if (!tenantId) return 'Cannot verify page slug without a canonical tenant';
+  if (prior && context.kind === 'tenant' && rel(prior.tenant) !== context.tenantId) {
+    return 'Page does not belong to the authorised tenant';
+  }
+
+  const estateId = rel(has('digitalEstate') ? data.digitalEstate : prior?.digitalEstate);
+  const locale = has('locale') ? data.locale : prior?.locale;
+  if (locale !== undefined && locale !== null && typeof locale !== 'string') {
+    return 'Cannot verify page slug with an invalid locale';
+  }
 
   const conflicting = await req.payload.find({
     collection: 'pages',
     where: {
       and: [
         { slug: { equals: value } },
-        { tenant: { equals: tenantId as string } },
-        estateId ? { digitalEstate: { equals: estateId as string } } : { digitalEstate: { exists: false } },
+        { tenant: { equals: tenantId } },
+        estateId ? { digitalEstate: { equals: estateId } } : { digitalEstate: { exists: false } },
         locale ? { locale: { equals: locale } } : { locale: { exists: false } },
         id ? { id: { not_equals: id } } : {},
       ],
@@ -42,12 +75,12 @@ const validateScopedSlug: TextFieldSingleValidation = async (value, options) => 
     limit: 1,
     depth: 0,
     req,
+    overrideAccess: true,
   });
 
-  if (conflicting.totalDocs > 0) {
-    return `Slug "${value}" is already used within this tenant/estate/locale scope (ADR-0012 §65-66).`;
-  }
-  return true;
+  return conflicting.totalDocs > 0
+    ? `Slug "${value}" is already used within this tenant/estate/locale scope (ADR-0012 §65-66).`
+    : true;
 };
 
 /**
