@@ -30,8 +30,8 @@ export function validateRuntimeEnvironment(env) {
   if (env.S3_ACCESS_KEY_ID === 'minioadmin' || env.S3_SECRET_ACCESS_KEY === 'minioadmin') {
     throw new Error('Development MinIO credentials cannot be used in production');
   }
-  if (env.PGSSLMODE === 'disable') {
-    throw new Error('Production PostgreSQL connections must not explicitly disable TLS');
+  if (env.PGSSLMODE !== 'require') {
+    throw new Error('Production PostgreSQL connections must require certificate-verified TLS (PGSSLMODE=require)');
   }
 }
 
