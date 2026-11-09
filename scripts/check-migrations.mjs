@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 // ADR-0019: an applied migration is a reviewed TS implementation, a
 // recoverable schema snapshot, and an entry in the deterministic registry.
@@ -30,7 +30,7 @@ export function checkMigrationInventory(dir) {
   return names;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const names = checkMigrationInventory(join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations'));
   process.stdout.write(`Verified ${names.length} registered Payload migrations and schema snapshots\n`);
 }
