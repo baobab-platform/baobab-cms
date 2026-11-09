@@ -2,8 +2,6 @@ import type { CollectionConfig } from 'payload';
 import { tenantOwnedField } from '../baobab/tenancy/fields.js';
 import { tenantScopedAccess } from '../baobab/tenancy/access.js';
 import { canonicalIdField } from '../baobab/identity/field.js';
-import { canonicalAfterChangeHook, canonicalAfterDeleteHook } from '../baobab/events/hook.js';
-import { CanonicalEventType } from '../baobab/events/types.js';
 
 const CONTROL_PLANE_ORGANISATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -19,21 +17,11 @@ const Organisations: CollectionConfig = {
     description: 'Legal entity within a tenant (ADR-0012 §23). Distinct from — never a synonym for — tenancy.',
   },
   access: tenantScopedAccess(),
-  hooks: {
-    afterChange: [
-      canonicalAfterChangeHook({
-        canonicalEntityType: 'LEGAL_ENTITY',
-        eventTypeFor: (operation) =>
-          operation === 'create' ? CanonicalEventType.CONTENT_CREATED : CanonicalEventType.CONTENT_UPDATED,
-      }),
-    ],
-    afterDelete: [
-      canonicalAfterDeleteHook({
-        canonicalEntityType: 'LEGAL_ENTITY',
-        eventTypeFor: () => CanonicalEventType.CONTENT_ARCHIVED,
-      }),
-    ],
-  },
+  // CP-owned resource projection: CMS has no authority to originate a
+  // canonical tenant/organisation/estate/market lifecycle event. The
+  // Control Plane is the source of such events; CMS content records are
+  // independently event-producing under ADR-0018.
+
   fields: [
     canonicalIdField({ authority: 'control-plane', name: 'canonicalLegalEntityId', entityType: 'LEGAL_ENTITY' }),
     tenantOwnedField(),
