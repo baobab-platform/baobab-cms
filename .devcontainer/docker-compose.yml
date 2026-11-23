@@ -15,10 +15,3 @@ services:
       S3_SECRET_ACCESS_KEY: minioadmin
       S3_FORCE_PATH_STYLE: 'true'
       BAOBAB_ENGINE_INSTANCE_ID: devcontainer
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
